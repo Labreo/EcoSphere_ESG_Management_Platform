@@ -1233,10 +1233,12 @@ html, body {
    Notification Bell & Dropdown
    ============================================================ */
 #notification-dropdown-container {
-  position: absolute;
-  right: 220px;
-  top: 50%;
-  transform: translateY(-50%);
+  position: relative;
+  height: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 16px;
   z-index: 200;
 }
 
@@ -1851,6 +1853,11 @@ html, body {
   #notification-dropdown-container {
     position: static;
     transform: none;
-    margin-right: 8px;
+    margin-right: 12px;
+    margin-left: auto;
+    height: auto;
+    display: inline-flex;
+    padding: 0;
+    align-items: center;
   }
 }

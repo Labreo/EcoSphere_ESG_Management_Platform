@@ -288,6 +288,35 @@ function getNotificationIcon(type) {
   return icons[type] || 'bell';
 }
 
+function adjustNotificationBellPlacement() {
+  const container = document.getElementById('notification-dropdown-container');
+  if (!container) return;
+
+  const isMobile = window.innerWidth <= 1024;
+
+  if (isMobile) {
+    const header = document.querySelector('.app-top-nav-bar');
+    if (header) {
+      const toggle = header.querySelector('.mobile-nav-toggle');
+      if (toggle && container.nextSibling !== toggle) {
+        header.insertBefore(container, toggle);
+      } else if (!toggle && container.parentElement !== header) {
+        header.appendChild(container);
+      }
+    }
+  } else {
+    const navBar = document.querySelector('.horizontal-nav');
+    if (navBar) {
+      const userSection = navBar.querySelector('.nav-user-section');
+      if (userSection && container.nextSibling !== userSection) {
+        navBar.insertBefore(container, userSection);
+      } else if (!userSection && container.parentElement !== navBar) {
+        navBar.appendChild(container);
+      }
+    }
+  }
+}
+
 function renderNotificationDropdown(userId) {
   const existing = document.getElementById('notification-dropdown-container');
   if (existing) existing.remove();
@@ -311,7 +340,10 @@ function renderNotificationDropdown(userId) {
   `;
 
   const header = document.querySelector('.app-top-nav-bar');
-  header.appendChild(container);
+  if (header) {
+    header.appendChild(container);
+  }
+  adjustNotificationBellPlacement();
 
   const bellWrapper = container.querySelector('#notif-bell-wrapper');
   const dropdown = container.querySelector('#notif-dropdown');
@@ -437,6 +469,7 @@ function updateUserNav() {
 
 function initializeApp() {
   window.addEventListener('hashchange', handleRouting);
+  window.addEventListener('resize', adjustNotificationBellPlacement);
 
   if (themeToggle) {
     const savedTheme = localStorage.getItem('theme') || 'dark';
