@@ -11,6 +11,28 @@
   
   <!-- Lucide Icons (self-hosted) -->
   <script src="js/lib/lucide.min.js"></script>
+  <script>
+    window.addEventListener('error', function(e) {
+      var div = document.getElementById('debug-error-banner');
+      if (!div) {
+        div = document.createElement('div');
+        div.id = 'debug-error-banner';
+        div.style.cssText = 'position:fixed;top:0;left:0;width:100%;padding:15px;background:#FEE2E2;color:#991B1B;border-bottom:2px solid #EF4444;z-index:999999;font-family:monospace;font-size:13px;white-space:pre-wrap;box-sizing:border-box;';
+        document.body.appendChild(div);
+      }
+      div.innerHTML += '<div><strong>Error:</strong> ' + e.message + ' at ' + e.filename + ':' + e.lineno + '</div>';
+    });
+    window.addEventListener('unhandledrejection', function(e) {
+      var div = document.getElementById('debug-error-banner');
+      if (!div) {
+        div = document.createElement('div');
+        div.id = 'debug-error-banner';
+        div.style.cssText = 'position:fixed;top:0;left:0;width:100%;padding:15px;background:#FEE2E2;color:#991B1B;border-bottom:2px solid #EF4444;z-index:999999;font-family:monospace;font-size:13px;white-space:pre-wrap;box-sizing:border-box;';
+        document.body.appendChild(div);
+      }
+      div.innerHTML += '<div><strong>Unhandled Promise:</strong> ' + (e.reason ? (e.reason.message || e.reason) : 'Unknown') + '</div>';
+    });
+  </script>
 </head>
 <body>
   <div class="app-container app-container-horizontal">

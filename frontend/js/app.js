@@ -461,4 +461,8 @@ function updateThemeIcon(theme) {
   window.lucide?.createIcons();
 }
 
-document.addEventListener('DOMContentLoaded', initializeApp);
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initializeApp);
+} else {
+  initializeApp();
+}

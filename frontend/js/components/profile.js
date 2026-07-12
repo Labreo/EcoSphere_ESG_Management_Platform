@@ -36,29 +36,29 @@ export async function renderProfilePage(container) {
           <div style="display:flex;flex-direction:column;gap:16px;">
             <div class="view-card" style="text-align:center;padding:32px 24px;">
               <div style="width:90px;height:90px;border-radius:50%;background:rgba(16,185,129,0.12);color:var(--accent-success);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:36px;margin:0 auto 16px;border:3px solid rgba(16,185,129,0.25);">
-                ${currentUser.name?.[0]?.toUpperCase() || '?'}
+                ${currentUser?.name?.[0]?.toUpperCase() || '?'}
               </div>
-              <h3 style="font-size:18px;font-weight:700;margin-bottom:4px;color:var(--text-primary);">${currentUser.name}</h3>
-              <p style="color:var(--text-secondary);font-size:13px;margin-bottom:12px;">${currentUser.designation || 'Sustainability Partner'}</p>
-              <span class="badge" style="background:var(--accent-success);color:#fff;padding:4px 10px;font-size:11px;border-radius:var(--radius-sm);">${currentUser.role?.toUpperCase() || 'EMPLOYEE'}</span>
-              ${currentUser.bio ? `<div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border-color);font-size:13px;color:var(--text-secondary);font-style:italic;line-height:1.5;">"${currentUser.bio}"</div>` : ''}
+              <h3 style="font-size:18px;font-weight:700;margin-bottom:4px;color:var(--text-primary);">${currentUser?.name || 'User'}</h3>
+              <p style="color:var(--text-secondary);font-size:13px;margin-bottom:12px;">${currentUser?.designation || 'Sustainability Partner'}</p>
+              <span class="badge" style="background:var(--accent-success);color:#fff;padding:4px 10px;font-size:11px;border-radius:var(--radius-sm);">${currentUser?.role?.toUpperCase() || 'EMPLOYEE'}</span>
+              ${currentUser?.bio ? `<div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--border-color);font-size:13px;color:var(--text-secondary);font-style:italic;line-height:1.5;">"${currentUser.bio}"</div>` : ''}
             </div>
 
             <div class="view-card">
               <h4 style="font-size:14px;font-weight:700;margin-bottom:12px;color:var(--text-primary);">Organization Info</h4>
               <div style="display:flex;flex-direction:column;gap:8px;font-size:13px;">
-                <div class="profile-info-row"><span style="color:var(--text-muted);">Email:</span><span style="font-weight:600;">${currentUser.email}</span></div>
-                <div class="profile-info-row"><span style="color:var(--text-muted);">Department:</span><span style="font-weight:600;">${currentUser.department_id || 'Unassigned'}</span></div>
-                <div class="profile-info-row"><span style="color:var(--text-muted);">Gender:</span><span style="font-weight:600;">${currentUser.gender || 'Not set'}</span></div>
-                <div class="profile-info-row"><span style="color:var(--text-muted);">Email Verified:</span><span style="font-weight:600;">${currentUser.is_email_verified ? 'Yes' : 'No'}</span></div>
+                <div class="profile-info-row"><span style="color:var(--text-muted);">Email:</span><span style="font-weight:600;">${currentUser?.email || 'N/A'}</span></div>
+                <div class="profile-info-row"><span style="color:var(--text-muted);">Department:</span><span style="font-weight:600;">${currentUser?.department_id || 'Unassigned'}</span></div>
+                <div class="profile-info-row"><span style="color:var(--text-muted);">Gender:</span><span style="font-weight:600;">${currentUser?.gender || 'Not set'}</span></div>
+                <div class="profile-info-row"><span style="color:var(--text-muted);">Email Verified:</span><span style="font-weight:600;">${currentUser?.is_email_verified ? 'Yes' : 'No'}</span></div>
               </div>
             </div>
 
             <div class="view-card">
               <h4 style="font-size:14px;font-weight:700;margin-bottom:12px;color:var(--text-primary);">Gamification Stats</h4>
               <div style="display:flex;flex-direction:column;gap:8px;font-size:13px;">
-                <div class="profile-info-row"><span style="color:var(--text-muted);">XP Earned:</span><span style="font-weight:600;color:var(--accent-success);">${currentUser.xp_points || 0} XP</span></div>
-                <div class="profile-info-row"><span style="color:var(--text-muted);">Points:</span><span style="font-weight:600;color:var(--accent-warning);">${currentUser.redeemable_points || 0} pts</span></div>
+                <div class="profile-info-row"><span style="color:var(--text-muted);">XP Earned:</span><span style="font-weight:600;color:var(--accent-success);">${currentUser?.xp_points || 0} XP</span></div>
+                <div class="profile-info-row"><span style="color:var(--text-muted);">Points:</span><span style="font-weight:600;color:var(--accent-warning);">${currentUser?.redeemable_points || 0} pts</span></div>
               </div>
             </div>
           </div>

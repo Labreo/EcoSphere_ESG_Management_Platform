@@ -1,5 +1,5 @@
 import * as api from '../api/reports.js';
-import { showToast, renderLoading } from '../api/toast.js';
+import { renderLoading } from '../api/toast.js';
 
 let state = {
   filters: {
