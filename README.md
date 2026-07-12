@@ -79,11 +79,18 @@ You can host the FastAPI backend on **Render** or **Railway**.
    - **Build Command:** `pip install -r backend/requirements.txt`
    - **Start Command:** `cd backend && uvicorn app.main:app --host 0.0.0.0 --port $PORT`
 5. Scroll down to **Environment Variables** and click **Add Environment Variable**:
+   - `PYTHON_VERSION`: `3.10.12` *(Crucial: This forces Render to use Python 3.10 instead of experimental/pre-release versions, allowing pip to use pre-built wheels and avoiding compile-from-source build failures)*
    - `DATABASE_URL`: `sqlite:///./ecosphere_esg.db` (For a production-grade DB, you can spin up a free PostgreSQL database on Render and paste its connection URI here).
    - `GOOGLE_GEMINI_API_KEY`: *(Your Gemini API key for the AI chatbot)*
    - `BREVO_API_KEY`: *(Your Brevo SMTP key for email notifications)*
    - `CORS_ORIGINS`: `*`
+
+> [!IMPORTANT]
+> **Build Troubleshooting:**
+> If you encounter build errors stating `metadata-generation-failed` or failures compile-building `pydantic-core`, it means Render is attempting to build packages under an unsupported or experimental Python version (e.g. Python 3.14). Adding the `PYTHON_VERSION` environment variable with value `3.10.12` (or utilizing the `.python-version` files we created) fixes this instantly by downloading pre-compiled binaries instead.
+
 6. Click **Deploy Web Service**. Render will build and provide a live URL, e.g., `https://ecosphere-backend.onrender.com`.
+
 
 ---
 
