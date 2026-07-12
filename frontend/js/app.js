@@ -106,16 +106,29 @@ function loadingHTML() {
 }
 
 function errorHTML(message, retryFn) {
-  const retryAttr = retryFn ? ' onclick="location.reload()"' : '';
+  const msgStr = String(message);
+  const isConnectionError = msgStr.toLowerCase().includes('fetch') || msgStr.toLowerCase().includes('network') || msgStr.toLowerCase().includes('failed to load') || msgStr.toLowerCase().includes('typeerror');
+  
+  let configBtnHTML = '';
+  if (isConnectionError) {
+    configBtnHTML = `
+      <button class="error-retry-btn" style="margin-top: 4px; border-color: var(--accent-primary); color: var(--accent-primary);" onclick="const url = prompt('Enter your backend API URL:', localStorage.getItem('API_BASE') || 'http://127.0.0.1:8000/api/v1'); if (url) { localStorage.setItem('API_BASE', url); location.reload(); }">Configure Backend URL</button>
+    `;
+  }
+
   return `
     <div class="error-container">
       <i data-lucide="alert-circle"></i>
       <div class="error-title">Something went wrong</div>
       <div class="error-message">${message}</div>
-      <button class="error-retry-btn" onclick="location.reload()">Retry</button>
+      <div style="display: flex; flex-direction: column; gap: 8px; align-items: center;">
+        <button class="error-retry-btn" onclick="location.reload()">Retry Connection</button>
+        ${configBtnHTML}
+      </div>
     </div>
   `;
 }
+
 
 function renderAuthPage(pageKey) {
   if (!contentViewport) return;

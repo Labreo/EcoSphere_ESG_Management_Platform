@@ -28,11 +28,11 @@ const MOCK_BADGES = [
   { id: 'badge5', name: 'Net Zero Pioneer', description: 'Achieve net zero personal emissions for a month', icon: '🌍', unlockRule: '2000 XP + 5 activities' },
 ];
 const MOCK_REWARDS = [
-  { id: 'reward1', name: 'Gift Voucher', description: '$50 Amazon Gift Voucher', cost: 500, stock: 10, status: 'Active', icon: '🎁' },
-  { id: 'reward2', name: 'Eco Merch Pack', description: 'Reusable water bottle + tote bag + bamboo utensil set', cost: 300, stock: 20, status: 'Active', icon: '🛍️' },
-  { id: 'reward3', name: 'Charity Donation', description: 'Donate $100 to an environmental charity of your choice', cost: 800, stock: 5, status: 'Active', icon: '🤝' },
-  { id: 'reward4', name: 'Extra PTO Day', description: 'One extra paid day off', cost: 1000, stock: 3, status: 'Active', icon: '🏖️' },
-  { id: 'reward5', name: 'Premium Eco Workshop', description: 'Exclusive access to a sustainability leadership workshop', cost: 600, stock: 8, status: 'Active', icon: '📚' },
+  { id: 'reward1', name: 'Gift Voucher', description: '$50 Amazon Gift Voucher', cost: 500, points: 500, stock: 10, status: 'Active', icon: '🎁' },
+  { id: 'reward2', name: 'Eco Merch Pack', description: 'Reusable water bottle + tote bag + bamboo utensil set', cost: 300, points: 300, stock: 20, status: 'Active', icon: '🛍️' },
+  { id: 'reward3', name: 'Charity Donation', description: 'Donate $100 to an environmental charity of your choice', cost: 800, points: 800, stock: 5, status: 'Active', icon: '🤝' },
+  { id: 'reward4', name: 'Extra PTO Day', description: 'One extra paid day off', cost: 1000, points: 1000, stock: 3, status: 'Active', icon: '🏖️' },
+  { id: 'reward5', name: 'Premium Eco Workshop', description: 'Exclusive access to a sustainability leadership workshop', cost: 600, points: 600, stock: 8, status: 'Active', icon: '📚' },
 ];
 const MOCK_PARTICIPATIONS = [
   { id: 'p1', challengeId: 'c1', employee: 'Aditi Rao', status: 'Pending', proof: 'sprint_evidence.pdf', xpAwarded: 0 },
@@ -66,6 +66,9 @@ function getInitials(name) {
 function checkAndAwardBadges(employeeName) {
   const employee = employees[employeeName];
   if (!employee) return [];
+  if (!employee.badges) {
+    employee.badges = [];
+  }
 
   // Check the Badge Auto-Award toggle from Settings
   const esgSettings = JSON.parse(localStorage.getItem('esg_settings') || '{}');
@@ -143,7 +146,11 @@ export async function renderGamificationPage(container, pageKey) {
     currentUser = user ? user.name : '';
     if (ldr && ldr.length > 0) {
       ldr.forEach(e => {
-        employees[e.employee_name] = { xp: e.total_xp || 0, department: e.department_name || '' };
+        employees[e.employee_name] = {
+          xp: e.total_xp || e.xp_points || 0,
+          department: e.department_name || '',
+          badges: e.badge_ids ? e.badge_ids.map(id => `badge${id}`) : []
+        };
       });
     }
   } catch (err) {
@@ -425,9 +432,11 @@ function renderBadgeGalleryList() {
   const currentBadges = employees[currentUser]?.badges || [];
   return badges.map(b => {
     const isUnlocked = currentBadges.includes(b.id);
+    const isEmoji = !/^[a-zA-Z0-9-]+$/.test(b.icon || '');
+    const iconHtml = isEmoji ? (b.icon || '🏅') : `<i data-lucide="${b.icon}"></i>`;
     return `
       <div class="mini-badge-card ${isUnlocked ? 'unlocked' : 'locked'}">
-        <div class="mini-badge-icon">${b.icon}</div>
+        <div class="mini-badge-icon">${iconHtml}</div>
         <div class="mini-badge-details">
           <h4>${b.name}</h4>
           <p>${b.description}</p>
@@ -563,9 +572,11 @@ function renderBadges() {
   
   const badgeCardsHtml = badges.map(b => {
     const isUnlocked = currentBadges.includes(b.id);
+    const isEmoji = !/^[a-zA-Z0-9-]+$/.test(b.icon || '');
+    const iconHtml = isEmoji ? (b.icon || '🏅') : `<i data-lucide="${b.icon}"></i>`;
     return `
       <div class="glass-card badge-gallery-card ${isUnlocked ? 'unlocked' : 'locked'}">
-        <div class="badge-icon-large">${b.icon}</div>
+        <div class="badge-icon-large">${iconHtml}</div>
         <h4>${b.name}</h4>
         <p>${b.description}</p>
         <span class="badge-rule">Unlock Rule: ${b.unlockRule}</span>
@@ -1207,6 +1218,9 @@ function bindGamificationEvents(container, pageKey) {
       const points = employees[currentUser]?.xp || 0;
 
       if (!reward) return;
+      if (reward.points === undefined) {
+        reward.points = reward.cost || 0;
+      }
 
       if (reward.stock <= 0) {
         showToast('Item is out of stock!', 'warning');

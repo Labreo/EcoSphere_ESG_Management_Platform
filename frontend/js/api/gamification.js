@@ -15,25 +15,60 @@ function mapChallenge(c) {
 }
 
 function mapBadge(b) {
+  let ruleText = '';
+  if (b.unlock_rule) {
+    try {
+      const parsed = typeof b.unlock_rule === 'string' ? JSON.parse(b.unlock_rule) : b.unlock_rule;
+      if (parsed && parsed.metric && parsed.value) {
+        if (parsed.metric === 'xp') {
+          ruleText = `${parsed.value} XP threshold`;
+        } else if (parsed.metric === 'challenges') {
+          ruleText = `${parsed.value} completed challenges`;
+        } else if (parsed.metric === 'activities') {
+          ruleText = `${parsed.value} CSR activities`;
+        } else {
+          ruleText = `${parsed.value} ${parsed.metric}`;
+        }
+      } else {
+        ruleText = String(b.unlock_rule);
+      }
+    } catch (e) {
+      ruleText = String(b.unlock_rule);
+    }
+  }
   return {
     id: `badge${b.id}`,
     name: b.name,
     description: b.description,
     icon: b.icon || 'award',
+    unlockRule: ruleText || 'Unknown threshold',
     unlocked: false,
   };
 }
 
 function mapReward(r) {
+  let icon = r.icon;
+  if (!icon) {
+    icon = '🎁';
+    const nameLower = (r.name || '').toLowerCase();
+    if (nameLower.includes('voucher') || nameLower.includes('gift')) icon = '🎫';
+    else if (nameLower.includes('merch') || nameLower.includes('bottle') || nameLower.includes('pack')) icon = '🛍️';
+    else if (nameLower.includes('donation') || nameLower.includes('charity')) icon = '🤝';
+    else if (nameLower.includes('pto') || nameLower.includes('day off')) icon = '🏖️';
+    else if (nameLower.includes('workshop') || nameLower.includes('course')) icon = '📚';
+  }
   return {
     id: `reward${r.id}`,
     name: r.name,
     description: r.description,
     cost: r.points_required,
+    points: r.points_required,
     stock: r.stock,
     status: r.status,
+    icon: icon,
   };
 }
+
 
 export async function getChallenges() {
   const data = await get('/gamification/challenges');

@@ -6,6 +6,18 @@ Designed with a high-fidelity **glassmorphic UI**, responsive charts, a customiz
 
 ---
 
+## 🔗 Live Application Link
+
+You can access and interact with the live deployed application here:
+👉 **[EcoSphere Live Web App (Netlify)](https://melodious-kitsune-accd4e.netlify.app)**
+
+> [!TIP]
+> **Free Tier Sleep Warning:**
+> Since the backend API is hosted on a free Render instance, it will spin down during periods of inactivity. If the frontend displays a connection error upon your first visit, it means the backend is waking up. Please allow up to **50–60 seconds** for the initial spin-up, or click **"Configure Backend URL"** on the screen to view or change your API base settings.
+
+---
+
+
 ## 🎯 Evaluator Quick-Start Guide
 
 To evaluate this platform as quickly and thoroughly as possible, you can run it locally with pre-seeded, high-fidelity demo data.

@@ -299,11 +299,16 @@ def get_individual_leaderboard(session: Session, limit: int = 50) -> List[dict]:
     result = []
     for emp in employees:
         dept_name = emp.department.name if emp.department else None
+        badge_ids = session.exec(
+            select(BadgeUnlock.badge_id).where(BadgeUnlock.employee_id == emp.id)
+        ).all()
         result.append({
             "employee_id": emp.id,
             "employee_name": emp.name,
             "department_name": dept_name,
             "xp_points": emp.xp_points or 0,
+            "total_xp": emp.xp_points or 0,
+            "badge_ids": list(badge_ids),
         })
     return result
 
