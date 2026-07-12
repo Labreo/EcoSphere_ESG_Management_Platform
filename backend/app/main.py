@@ -7,6 +7,7 @@ from app.database import init_db
 from app.modules.auth.router import router as auth_router
 from app.modules.auth.router import dept_router
 from app.modules.settings.router import router as settings_router
+from app.modules.settings.router import notifications_router
 from app.modules.environmental.router import router as environmental_router
 from app.modules.social.router import router as social_router
 from app.modules.governance.router import router as governance_router
@@ -44,6 +45,7 @@ app.include_router(social_router, prefix=settings.API_V1_STR)
 app.include_router(governance_router, prefix=settings.API_V1_STR)
 app.include_router(gamification_router, prefix=settings.API_V1_STR)
 app.include_router(reports_router, prefix=settings.API_V1_STR)
+app.include_router(notifications_router, prefix=settings.API_V1_STR)
 
 @app.get("/")
 def health_check():

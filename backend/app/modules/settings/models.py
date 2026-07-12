@@ -1,6 +1,6 @@
 from sqlmodel import SQLModel, Field
 from typing import Optional
-from datetime import date
+from datetime import date, datetime
 
 class Category(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)
@@ -27,3 +27,12 @@ class SystemConfiguration(SQLModel, table=True):
     environmental_weight: float = Field(default=0.40)
     social_weight: float = Field(default=0.30)
     governance_weight: float = Field(default=0.30)
+
+class Notification(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    employee_id: int = Field(foreign_key="employee.id", index=True)
+    title: str
+    message: str
+    notification_type: str = Field(default="system")  # compliance, badge, approval, system
+    is_read: bool = Field(default=False)
+    created_at: datetime = Field(default_factory=datetime.utcnow)

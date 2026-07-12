@@ -19,6 +19,7 @@ class Employee(SQLModel, table=True):
     email: str = Field(unique=True, index=True)
     password_hash: str
     role: str = Field(default="Employee")  # Admin, ESG Manager, Employee
+    gender: Optional[str] = None  # Male, Female, Non-Binary, Prefer not to say
     department_id: Optional[int] = Field(default=None, foreign_key="department.id")
     xp_points: int = Field(default=0)
     redeemable_points: int = Field(default=0)

@@ -9,11 +9,11 @@ engine = create_engine(settings.DATABASE_URL, echo=True, connect_args=connect_ar
 def init_db():
     # Import all models here so they register with SQLModel metadata
     from app.modules.auth.models import Department, Employee
-    from app.modules.settings.models import Category, DepartmentScore
+    from app.modules.settings.models import Category, DepartmentScore, SystemConfiguration, Notification
     from app.modules.environmental.models import EmissionFactor, ProductESGProfile, EnvironmentalGoal, CarbonTransaction
     from app.modules.social.models import CSRActivity, EmployeeParticipation
     from app.modules.governance.models import ESGPolicy, PolicyAcknowledgement, Audit, ComplianceIssue
-    from app.modules.gamification.models import Badge, Reward, Challenge, ChallengeParticipation
+    from app.modules.gamification.models import Badge, Reward, Challenge, ChallengeParticipation, BadgeUnlock, RewardRedemption
     
     SQLModel.metadata.create_all(engine)
 

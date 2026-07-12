@@ -1,35 +1,160 @@
-from fastapi import APIRouter, Depends
+from typing import Optional
+from datetime import date
+from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel
 from sqlmodel import Session
 from app.database import get_session
+from app.modules.auth.models import Employee
+from app.modules.auth.service import get_current_user, require_admin, get_optional_user
+from app.modules.social.models import CSRActivity, EmployeeParticipation
+from app.modules.social.service import (
+    list_activities,
+    get_activity,
+    create_activity,
+    update_activity,
+    delete_activity,
+    join_activity,
+    submit_proof,
+    approve_participation,
+    get_diversity_metrics,
+)
 
 router = APIRouter(prefix="/social", tags=["Social Module"])
 
-@router.get("/activities")
-def list_activities(session: Session = Depends(get_session)):
-    # SKELETON: To be implemented by Agent C
-    return {"message": "List CSR activities skeleton"}
 
-@router.post("/activities")
-def create_activity(session: Session = Depends(get_session)):
-    # SKELETON: To be implemented by Agent C
-    return {"message": "Create CSR activity skeleton"}
+class CSRActivityCreate(BaseModel):
+    title: str
+    description: str
+    category_id: int
+    date: date
+    points_reward: int = 100
+    max_participants: int = 50
+    status: str = "Upcoming"
 
-@router.post("/activities/{id}/join")
-def join_activity(id: int, session: Session = Depends(get_session)):
-    # SKELETON: To be implemented by Agent C
-    return {"message": f"Join CSR activity {id} skeleton"}
 
-@router.post("/activities/{id}/submit-proof")
-def submit_activity_proof(id: int, session: Session = Depends(get_session)):
-    # SKELETON: To be implemented by Agent C
-    return {"message": f"Submit proof for CSR activity {id} skeleton"}
+class CSRActivityUpdate(BaseModel):
+    title: Optional[str] = None
+    description: Optional[str] = None
+    category_id: Optional[int] = None
+    date: Optional[date] = None
+    points_reward: Optional[int] = None
+    max_participants: Optional[int] = None
+    status: Optional[str] = None
 
-@router.post("/participations/{id}/approve")
-def approve_participation(id: int, session: Session = Depends(get_session)):
-    # SKELETON: To be implemented by Agent C (Includes Evidence Requirement toggle check & points award)
-    return {"message": f"Approve participation {id} skeleton"}
+
+class CSRActivityResponse(BaseModel):
+    id: int
+    title: str
+    description: str
+    category_id: int
+    date: date
+    points_reward: int
+    max_participants: int
+    status: str
+
+    model_config = {"from_attributes": True}
+
+
+class EmployeeParticipationResponse(BaseModel):
+    id: int
+    employee_id: int
+    activity_id: int
+    proof_file_url: Optional[str] = None
+    approval_status: str
+    points_earned: int
+    completion_date: Optional[date] = None
+
+    model_config = {"from_attributes": True}
+
+
+class SubmitProofRequest(BaseModel):
+    proof_file_url: str
+
+
+# --- Endpoints ---
+
+@router.get("/activities", response_model=list[CSRActivityResponse])
+def list_activities_endpoint(
+    status_filter: Optional[str] = None,
+    category_id: Optional[int] = None,
+    date_from: Optional[date] = None,
+    date_to: Optional[date] = None,
+    session: Session = Depends(get_session),
+):
+    return list_activities(session, status_filter, category_id, date_from, date_to)
+
+
+@router.get("/activities/{id}", response_model=CSRActivityResponse)
+def get_activity_endpoint(id: int, session: Session = Depends(get_session)):
+    activity = get_activity(session, id)
+    if not activity:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Activity not found")
+    return activity
+
+
+@router.post("/activities", response_model=CSRActivityResponse, status_code=status.HTTP_201_CREATED)
+def create_activity_endpoint(
+    data: CSRActivityCreate,
+    session: Session = Depends(get_session),
+    _: Employee = Depends(require_admin),
+):
+    return create_activity(session, data.model_dump())
+
+
+@router.put("/activities/{id}", response_model=CSRActivityResponse)
+def update_activity_endpoint(
+    id: int,
+    data: CSRActivityUpdate,
+    session: Session = Depends(get_session),
+    _: Employee = Depends(require_admin),
+):
+    activity = get_activity(session, id)
+    if not activity:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Activity not found")
+    update_data = {k: v for k, v in data.model_dump().items() if v is not None}
+    return update_activity(session, activity, update_data)
+
+
+@router.delete("/activities/{id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_activity_endpoint(
+    id: int,
+    session: Session = Depends(get_session),
+    _: Employee = Depends(require_admin),
+):
+    activity = get_activity(session, id)
+    if not activity:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Activity not found")
+    delete_activity(session, activity)
+
+
+@router.post("/activities/{id}/join", response_model=EmployeeParticipationResponse, status_code=status.HTTP_201_CREATED)
+def join_activity_endpoint(
+    id: int,
+    session: Session = Depends(get_session),
+    current_user: Employee = Depends(get_current_user),
+):
+    return join_activity(session, current_user.id, id)
+
+
+@router.post("/activities/{id}/submit-proof", response_model=EmployeeParticipationResponse)
+def submit_activity_proof_endpoint(
+    id: int,
+    data: SubmitProofRequest,
+    session: Session = Depends(get_session),
+    current_user: Employee = Depends(get_current_user),
+):
+    return submit_proof(session, current_user.id, id, data.proof_file_url)
+
+
+@router.post("/participations/{id}/approve", response_model=EmployeeParticipationResponse)
+def approve_participation_endpoint(
+    id: int,
+    session: Session = Depends(get_session),
+    current_user: Employee = Depends(require_admin),
+):
+    return approve_participation(session, id, current_user.id)
+
 
 @router.get("/diversity-metrics")
-def get_diversity_metrics(session: Session = Depends(get_session)):
-    # SKELETON: To be implemented by Agent C
-    return {"message": "Get diversity metrics skeleton"}
+def get_diversity_metrics_endpoint(session: Session = Depends(get_session)):
+    return get_diversity_metrics(session)

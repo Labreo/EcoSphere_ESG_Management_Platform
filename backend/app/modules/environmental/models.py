@@ -16,6 +16,7 @@ class ProductESGProfile(SQLModel, table=True):
     carbon_footprint_kg: float = Field(default=0.0)
     recyclability_percentage: float = Field(default=0.0)
     water_footprint_liters: float = Field(default=0.0)
+    status: str = Field(default="Active")  # Active, Inactive
 
 class EnvironmentalGoal(SQLModel, table=True):
     id: Optional[int] = Field(default=None, primary_key=True)

@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EcoSphere | ESG Management Platform</title>
+  <meta name="description" content="A premium, state-of-the-art ESG management and gamification platform for organizations.">
+  
+  <!-- Premium Typography -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- CSS Stylesheets -->
+  <link rel="stylesheet" href="css/style.css">
+  
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+  <div class="app-container">
+    <!-- Mobile Navigation Toggle -->
+    <button class="mobile-nav-toggle" id="mobile-nav-toggle" aria-label="Toggle Navigation">
+      <i data-lucide="menu"></i>
+    </button>
+
+    <!-- Sidebar Navigation -->
+    <aside class="app-sidebar" id="app-sidebar">
+      <div class="sidebar-header">
+        <div class="logo-wrapper">
+          <div class="logo-icon">🌱</div>
+          <span class="logo-text">EcoSphere</span>
+        </div>
+        <button class="mobile-close-btn" id="mobile-close-btn" aria-label="Close Navigation">
+          <i data-lucide="x"></i>
+        </button>
+      </div>
+
+      <nav class="sidebar-nav">
+        <!-- Dashboard Section -->
+        <div class="nav-section">
+          <a href="#dashboard" class="nav-link nav-link-main active" id="link-dashboard">
+            <i data-lucide="layout-dashboard"></i>
+            <span>Dashboard</span>
+          </a>
+        </div>
+
+        <!-- Environmental Section -->
+        <div class="nav-section">
+          <div class="nav-section-header environmental-text">
+            <i data-lucide="leaf"></i>
+            <span>Environmental</span>
+          </div>
+          <ul class="nav-sub-list">
+            <li>
+              <a href="#environmental/emission-factors" class="nav-link" id="link-emission-factors">
+                <span>Emission Factors</span>
+              </a>
+            </li>
+            <li>
+              <a href="#environmental/product-esg-profiles" class="nav-link" id="link-product-esg-profiles">
+                <span>Product ESG Profiles</span>
+              </a>
+            </li>
+            <li>
+              <a href="#environmental/carbon-transactions" class="nav-link" id="link-carbon-transactions">
+                <span>Carbon Transactions</span>
+              </a>
+            </li>
+            <li>
+              <a href="#environmental/goals" class="nav-link" id="link-environmental-goals">
+                <span>Environmental Goals</span>
+              </a>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Social Section -->
+        <div class="nav-section">
+          <div class="nav-section-header social-text">
+            <i data-lucide="users"></i>
+            <span>Social</span>
+          </div>
+          <ul class="nav-sub-list">
+            <li>
+              <a href="#social/csr-activities" class="nav-link" id="link-csr-activities">
+                <span>CSR Activities</span>
+              </a>
+            </li>
+            <li>
+              <a href="#social/employee-participation" class="nav-link" id="link-employee-participation">
+                <span>Employee Participation</span>
+              </a>
+            </li>
+            <li>
+              <a href="#social/diversity-dashboard" class="nav-link" id="link-diversity-dashboard">
+                <span>Diversity Dashboard</span>
+              </a>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Governance Section -->
+        <div class="nav-section">
+          <div class="nav-section-header governance-text">
+            <i data-lucide="landmark"></i>
+            <span>Governance</span>
+          </div>
+          <ul class="nav-sub-list">
+            <li>
+              <a href="#governance/policies" class="nav-link" id="link-policies">
+                <span>Policies</span>
+              </a>
+            </li>
+            <li>
+              <a href="#governance/policy-acknowledgements" class="nav-link" id="link-policy-acknowledgements">
+                <span>Policy Acknowledgements</span>
+              </a>
+            </li>
+            <li>
+              <a href="#governance/audits" class="nav-link" id="link-audits">
+                <span>Audits</span>
+              </a>
+            </li>
+            <li>
+              <a href="#governance/compliance-issues" class="nav-link" id="link-compliance-issues">
+                <span>Compliance Issues</span>
+              </a>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Gamification Section -->
+        <div class="nav-section">
+          <div class="nav-section-header gamification-text">
+            <i data-lucide="trophy"></i>
+            <span>Gamification</span>
+          </div>
+          <ul class="nav-sub-list">
+            <li>
+              <a href="#gamification/challenges" class="nav-link" id="link-challenges">
+                <span>Challenges</span>
+              </a>
+            </li>
+            <li>
+              <a href="#gamification/challenge-participation" class="nav-link" id="link-challenge-participation">
+                <span>Challenge Participation</span>
+              </a>
+            </li>
+            <li>
+              <a href="#gamification/badges" class="nav-link" id="link-badges">
+                <span>Badges</span>
+              </a>
+            </li>
+            <li>
+              <a href="#gamification/rewards" class="nav-link" id="link-rewards">
+                <span>Rewards</span>
+              </a>
+            </li>
+            <li>
+              <a href="#gamification/leaderboard" class="nav-link" id="link-leaderboard">
+                <span>Leaderboard</span>
+              </a>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Reports Section -->
+        <div class="nav-section">
+          <div class="nav-section-header reports-text">
+            <i data-lucide="file-bar-chart"></i>
+            <span>Reports</span>
+          </div>
+          <ul class="nav-sub-list">
+            <li>
+              <a href="#reports/environmental-report" class="nav-link" id="link-environmental-report">
+                <span>Environmental Report</span>
+              </a>
+            </li>
+            <li>
+              <a href="#reports/social-report" class="nav-link" id="link-social-report">
+                <span>Social Report</span>
+              </a>
+            </li>
+            <li>
+              <a href="#reports/governance-report" class="nav-link" id="link-governance-report">
+                <span>Governance Report</span>
+              </a>
+            </li>
+            <li>
+              <a href="#reports/esg-summary" class="nav-link" id="link-esg-summary">
+                <span>ESG Summary</span>
+              </a>
+            </li>
+            <li>
+              <a href="#reports/custom-report-builder" class="nav-link" id="link-custom-report-builder">
+                <span>Custom Report Builder</span>
+              </a>
+            </li>
+          </ul>
+        </div>
+
+        <!-- Settings Section -->
+        <div class="nav-section">
+          <div class="nav-section-header settings-text">
+            <i data-lucide="settings"></i>
+            <span>Settings</span>
+          </div>
+          <ul class="nav-sub-list">
+            <li>
+              <a href="#settings/departments" class="nav-link" id="link-departments">
+                <span>Departments</span>
+              </a>
+            </li>
+            <li>
+              <a href="#settings/categories" class="nav-link" id="link-categories">
+                <span>Categories</span>
+              </a>
+            </li>
+            <li>
+              <a href="#settings/esg-configuration" class="nav-link" id="link-esg-configuration">
+                <span>ESG Configuration</span>
+              </a>
+            </li>
+            <li>
+              <a href="#settings/notification-settings" class="nav-link" id="link-notification-settings">
+                <span>Notification Settings</span>
+              </a>
+            </li>
+          </ul>
+        </div>
+      </nav>
+
+      <!-- Sidebar User Profile (Mock Footer) -->
+      <div class="sidebar-user-profile">
+        <div class="user-avatar">JD</div>
+        <div class="user-info">
+          <span class="user-name">Jane Doe</span>
+          <span class="user-role">Sustainability Admin</span>
+        </div>
+        <div class="user-xp-badge">
+          <i data-lucide="sparkles"></i>
+          <span>1,250 XP</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Content Area -->
+    <main class="app-main-content">
+      <!-- Main Header -->
+      <header class="app-content-header">
+        <div class="header-breadcrumb">
+          <span class="breadcrumb-parent" id="breadcrumb-parent">App</span>
+          <span class="breadcrumb-separator">/</span>
+          <span class="breadcrumb-active" id="breadcrumb-active">Dashboard</span>
+        </div>
+        <div class="header-actions">
+          <button class="header-action-btn" id="notifications-btn" aria-label="Notifications">
+            <i data-lucide="bell"></i>
+            <span class="btn-badge"></span>
+          </button>
+          <button class="header-action-btn" id="theme-toggle" aria-label="Toggle Theme">
+            <i data-lucide="sun"></i>
+          </button>
+        </div>
+      </header>
+
+      <!-- Page Viewport -->
+      <div class="content-viewport" id="content-viewport">
+        <!-- Component Content gets injected here -->
+      </div>
+    </main>
+  </div>
+
+  <!-- Main JS Logic -->
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

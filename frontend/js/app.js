@@ -1,0 +1,200 @@
+/**
+ * EcoSphere Frontend Application Router & Controller
+ */
+
+// Import view components
+import { renderDashboard } from './components/dashboard.js';
+import { renderEnvironmentalPage } from './components/environmental.js';
+import { renderSocialPage } from './components/social.js';
+import { renderGovernancePage } from './components/governance.js';
+import { renderGamificationPage } from './components/gamification.js';
+import { renderReportsPage } from './components/reports.js';
+import { renderSettingsPage } from './components/settings.js';
+
+// Route registry
+const routes = {
+  'dashboard': renderDashboard,
+  
+  // Environmental Pages
+  'environmental/emission-factors': (container) => renderEnvironmentalPage(container, 'emission-factors'),
+  'environmental/product-esg-profiles': (container) => renderEnvironmentalPage(container, 'product-esg-profiles'),
+  'environmental/carbon-transactions': (container) => renderEnvironmentalPage(container, 'carbon-transactions'),
+  'environmental/goals': (container) => renderEnvironmentalPage(container, 'goals'),
+
+  // Social Pages
+  'social/csr-activities': (container) => renderSocialPage(container, 'csr-activities'),
+  'social/employee-participation': (container) => renderSocialPage(container, 'employee-participation'),
+  'social/diversity-dashboard': (container) => renderSocialPage(container, 'diversity-dashboard'),
+
+  // Governance Pages
+  'governance/policies': (container) => renderGovernancePage(container, 'policies'),
+  'governance/policy-acknowledgements': (container) => renderGovernancePage(container, 'policy-acknowledgements'),
+  'governance/audits': (container) => renderGovernancePage(container, 'audits'),
+  'governance/compliance-issues': (container) => renderGovernancePage(container, 'compliance-issues'),
+
+  // Gamification Pages
+  'gamification/challenges': (container) => renderGamificationPage(container, 'challenges'),
+  'gamification/challenge-participation': (container) => renderGamificationPage(container, 'challenge-participation'),
+  'gamification/badges': (container) => renderGamificationPage(container, 'badges'),
+  'gamification/rewards': (container) => renderGamificationPage(container, 'rewards'),
+  'gamification/leaderboard': (container) => renderGamificationPage(container, 'leaderboard'),
+
+  // Reports Pages
+  'reports/environmental-report': (container) => renderReportsPage(container, 'environmental-report'),
+  'reports/social-report': (container) => renderReportsPage(container, 'social-report'),
+  'reports/governance-report': (container) => renderReportsPage(container, 'governance-report'),
+  'reports/esg-summary': (container) => renderReportsPage(container, 'esg-summary'),
+  'reports/custom-report-builder': (container) => renderReportsPage(container, 'custom-report-builder'),
+
+  // Settings Pages
+  'settings/departments': (container) => renderSettingsPage(container, 'departments'),
+  'settings/categories': (container) => renderSettingsPage(container, 'categories'),
+  'settings/esg-configuration': (container) => renderSettingsPage(container, 'esg-configuration'),
+  'settings/notification-settings': (container) => renderSettingsPage(container, 'notification-settings')
+};
+
+// DOM Elements
+const contentViewport = document.getElementById('content-viewport');
+const breadcrumbParent = document.getElementById('breadcrumb-parent');
+const breadcrumbActive = document.getElementById('breadcrumb-active');
+const appSidebar = document.getElementById('app-sidebar');
+const mobileNavToggle = document.getElementById('mobile-nav-toggle');
+const mobileCloseBtn = document.getElementById('mobile-close-btn');
+const themeToggle = document.getElementById('theme-toggle');
+
+// Helper: Format route keys into printable titles
+function formatRouteTitle(str) {
+  if (!str) return '';
+  return str.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
+}
+
+// Helper: Get Breadcrumb Info from Route path
+function getBreadcrumbInfo(route) {
+  if (route === 'dashboard') {
+    return { parent: 'App', active: 'Dashboard' };
+  }
+  
+  const parts = route.split('/');
+  if (parts.length === 2) {
+    const parent = parts[0].charAt(0).toUpperCase() + parts[0].slice(1);
+    const active = formatRouteTitle(parts[1]);
+    return { parent, active };
+  }
+  
+  return { parent: 'App', active: 'View' };
+}
+
+// Main Routing Handler
+function handleRouting() {
+  // Get current hash route, clean leading # and trailing slashes
+  let hash = window.location.hash.slice(1).replace(/\/$/, '') || 'dashboard';
+  
+  // Lookup route handler, fallback to dashboard
+  let routeHandler = routes[hash];
+  if (!routeHandler) {
+    window.location.hash = '#dashboard';
+    return;
+  }
+  
+  // Close mobile sidebar if open
+  appSidebar.classList.remove('open');
+  
+  // Highlight active sidebar navigation item
+  updateSidebarActiveState(hash);
+  
+  // Update Breadcrumbs
+  const breadcrumb = getBreadcrumbInfo(hash);
+  breadcrumbParent.textContent = breadcrumb.parent;
+  breadcrumbActive.textContent = breadcrumb.active;
+  
+  // Render views with a fade-in animation transition
+  contentViewport.classList.remove('fade-in');
+  void contentViewport.offsetWidth; // Trigger reflow to restart animation
+  contentViewport.classList.add('fade-in');
+  
+  // Render component view
+  contentViewport.innerHTML = '';
+  routeHandler(contentViewport);
+  
+  // Re-initialize any Lucide icons rendered dynamically in components
+  if (window.lucide) {
+    window.lucide.createIcons();
+  }
+}
+
+// Highlight the matching navigation sidebar link
+function updateSidebarActiveState(hash) {
+  // Clear previous active states
+  const allLinks = document.querySelectorAll('.nav-link');
+  allLinks.forEach(link => link.classList.remove('active'));
+  
+  // Find correct link
+  let linkId = 'link-' + hash;
+  if (hash.includes('/')) {
+    const parts = hash.split('/');
+    linkId = 'link-' + parts[1];
+  }
+  
+  const activeLink = document.getElementById(linkId);
+  if (activeLink) {
+    activeLink.classList.add('active');
+  }
+}
+
+// Initialize Event Listeners
+function initializeApp() {
+  // Hashchange Router event
+  window.addEventListener('hashchange', handleRouting);
+  
+  // Mobile Nav Toggles
+  if (mobileNavToggle) {
+    mobileNavToggle.addEventListener('click', () => {
+      appSidebar.classList.add('open');
+    });
+  }
+  
+  if (mobileCloseBtn) {
+    mobileCloseBtn.addEventListener('click', () => {
+      appSidebar.classList.remove('open');
+    });
+  }
+  
+  // Close sidebar on tapping overlay/outside on mobile
+  document.addEventListener('click', (e) => {
+    if (window.innerWidth <= 1024) {
+      if (!appSidebar.contains(e.target) && !mobileNavToggle.contains(e.target) && appSidebar.classList.contains('open')) {
+        appSidebar.classList.remove('open');
+      }
+    }
+  });
+
+  // Dark/Light Theme Toggle
+  if (themeToggle) {
+    // Check saved theme or default to dark
+    const savedTheme = localStorage.getItem('theme') || 'dark';
+    document.documentElement.setAttribute('data-theme', savedTheme);
+    updateThemeIcon(savedTheme);
+
+    themeToggle.addEventListener('click', () => {
+      const currentTheme = document.documentElement.getAttribute('data-theme');
+      const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+      document.documentElement.setAttribute('data-theme', newTheme);
+      localStorage.setItem('theme', newTheme);
+      updateThemeIcon(newTheme);
+    });
+  }
+  
+  // Run router once initially
+  handleRouting();
+}
+
+function updateThemeIcon(theme) {
+  const icon = themeToggle.querySelector('i');
+  if (icon && window.lucide) {
+    themeToggle.innerHTML = theme === 'light' ? '<i data-lucide="moon"></i>' : '<i data-lucide="sun"></i>';
+    window.lucide.createIcons();
+  }
+}
+
+// Start App when DOM is ready
+document.addEventListener('DOMContentLoaded', initializeApp);

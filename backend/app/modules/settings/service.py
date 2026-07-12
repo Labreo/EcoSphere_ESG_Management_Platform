@@ -1,2 +1,82 @@
-# Settings service logic skeleton
-# To be completed by Agent F
+from sqlmodel import Session, select
+from app.modules.settings.models import SystemConfiguration, Category, Notification
+from pydantic import BaseModel
+from typing import Optional
+
+class ConfigUpdate(BaseModel):
+    auto_emission_calculation: Optional[bool] = None
+    evidence_requirement: Optional[bool] = None
+    badge_auto_award: Optional[bool] = None
+    environmental_weight: Optional[float] = None
+    social_weight: Optional[float] = None
+    governance_weight: Optional[float] = None
+
+class CategoryCreate(BaseModel):
+    name: str
+    type: str  # "CSR Activity" or "Challenge"
+    status: str = "Active"
+
+
+def get_config(session: Session) -> SystemConfiguration:
+    config = session.get(SystemConfiguration, 1)
+    if config is None:
+        config = SystemConfiguration()
+        session.add(config)
+        session.commit()
+        session.refresh(config)
+    return config
+
+def update_config(session: Session, data: ConfigUpdate) -> SystemConfiguration:
+    config = get_config(session)
+    update_data = data.model_dump(exclude_unset=True)
+    for field, value in update_data.items():
+        setattr(config, field, value)
+    session.add(config)
+    session.commit()
+    session.refresh(config)
+    return config
+
+def list_categories(session: Session, type_filter: Optional[str] = None) -> list[Category]:
+    query = select(Category)
+    if type_filter:
+        query = query.where(Category.type == type_filter)
+    return session.exec(query).all()
+
+def create_category(session: Session, data: CategoryCreate) -> Category:
+    category = Category(name=data.name, type=data.type, status=data.status)
+    session.add(category)
+    session.commit()
+    session.refresh(category)
+    return category
+
+
+# Notification Engine
+
+def create_notification(session: Session, employee_id: int, title: str, message: str, notification_type: str = "system") -> Notification:
+    notification = Notification(
+        employee_id=employee_id,
+        title=title,
+        message=message,
+        notification_type=notification_type,
+    )
+    session.add(notification)
+    session.commit()
+    session.refresh(notification)
+    return notification
+
+def get_user_notifications(session: Session, employee_id: int, unread_only: bool = False) -> list[Notification]:
+    query = select(Notification).where(Notification.employee_id == employee_id)
+    if unread_only:
+        query = query.where(Notification.is_read == False)
+    query = query.order_by(Notification.created_at.desc())
+    return session.exec(query).all()
+
+def mark_notification_read(session: Session, notification_id: int, employee_id: int) -> Optional[Notification]:
+    notification = session.get(Notification, notification_id)
+    if notification and notification.employee_id == employee_id:
+        notification.is_read = True
+        session.add(notification)
+        session.commit()
+        session.refresh(notification)
+        return notification
+    return None

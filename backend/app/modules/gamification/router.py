@@ -1,50 +1,126 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from sqlmodel import Session
+from typing import Optional
+
 from app.database import get_session
+from app.modules.gamification.schemas import (
+    ChallengeCreate, ChallengeUpdate, ChallengeStatusUpdate,
+    ParticipateRequest, EvidenceSubmit, ApproveRequest,
+    RewardRedeemRequest,
+)
+from app.modules.gamification import service
 
 router = APIRouter(prefix="/gamification", tags=["Gamification Module"])
 
+
+# ── Challenges ──────────────────────────────────────────────────
+
 @router.get("/challenges")
-def list_challenges(session: Session = Depends(get_session)):
-    # SKELETON: To be implemented by Agent E
-    return {"message": "List challenges skeleton"}
+def list_challenges(
+    status: Optional[str] = Query(None),
+    session: Session = Depends(get_session),
+):
+    challenges = service.list_challenges(session, status)
+    return challenges
+
+
+@router.get("/challenges/{challenge_id}")
+def get_challenge(challenge_id: int, session: Session = Depends(get_session)):
+    return service.get_challenge(session, challenge_id)
+
 
 @router.post("/challenges")
-def create_challenge(session: Session = Depends(get_session)):
-    # SKELETON: To be implemented by Agent E
-    return {"message": "Create challenge skeleton"}
+def create_challenge(data: ChallengeCreate, session: Session = Depends(get_session)):
+    return service.create_challenge(session, data)
 
-@router.post("/challenges/{id}/participate")
-def participate_in_challenge(id: int, session: Session = Depends(get_session)):
-    # SKELETON: To be implemented by Agent E
-    return {"message": f"Participate in challenge {id} skeleton"}
 
-@router.post("/challenges/{id}/submit-evidence")
-def submit_challenge_evidence(id: int, session: Session = Depends(get_session)):
-    # SKELETON: To be implemented by Agent E
-    return {"message": f"Submit evidence for challenge {id} skeleton"}
+@router.put("/challenges/{challenge_id}")
+def update_challenge(
+    challenge_id: int,
+    data: ChallengeUpdate,
+    session: Session = Depends(get_session),
+):
+    return service.update_challenge(session, challenge_id, data)
 
-@router.post("/challenges/participations/{id}/approve")
-def approve_challenge_participation(id: int, session: Session = Depends(get_session)):
-    # SKELETON: To be implemented by Agent E (Includes Badge Auto-Award logic check)
-    return {"message": f"Approve challenge participation {id} skeleton"}
+
+@router.delete("/challenges/{challenge_id}")
+def delete_challenge(challenge_id: int, session: Session = Depends(get_session)):
+    service.delete_challenge(session, challenge_id)
+    return {"message": "Challenge deleted"}
+
+
+@router.patch("/challenges/{challenge_id}/status")
+def update_challenge_status(
+    challenge_id: int,
+    data: ChallengeStatusUpdate,
+    session: Session = Depends(get_session),
+):
+    return service.update_challenge_status(session, challenge_id, data.status)
+
+
+# ── Participation ───────────────────────────────────────────────
+
+@router.post("/challenges/{challenge_id}/participate")
+def participate_in_challenge(
+    challenge_id: int,
+    data: ParticipateRequest,
+    session: Session = Depends(get_session),
+):
+    return service.participate(session, challenge_id, data.employee_id)
+
+
+@router.post("/challenges/{challenge_id}/submit-evidence")
+def submit_challenge_evidence(
+    challenge_id: int,
+    data: EvidenceSubmit,
+    session: Session = Depends(get_session),
+):
+    return service.submit_evidence(session, challenge_id, data)
+
+
+@router.post("/challenges/participations/{participation_id}/approve")
+def approve_challenge_participation(
+    participation_id: int,
+    data: ApproveRequest,
+    session: Session = Depends(get_session),
+):
+    return service.approve_participation(session, participation_id, data.employee_id)
+
+
+# ── Badges ──────────────────────────────────────────────────────
 
 @router.get("/badges")
 def list_badges(session: Session = Depends(get_session)):
-    # SKELETON: To be implemented by Agent E
-    return {"message": "List badges skeleton"}
+    return service.list_badges(session)
+
+
+# ── Rewards ─────────────────────────────────────────────────────
 
 @router.get("/rewards")
-def list_rewards(session: Session = Depends(get_session)):
-    # SKELETON: To be implemented by Agent E
-    return {"message": "List rewards catalog skeleton"}
+def list_rewards(
+    status: Optional[str] = Query(None),
+    session: Session = Depends(get_session),
+):
+    return service.list_rewards(session, status)
 
-@router.post("/rewards/{id}/redeem")
-def redeem_reward(id: int, session: Session = Depends(get_session)):
-    # SKELETON: To be implemented by Agent E (Includes Reward Redemption logic check)
-    return {"message": f"Redeem reward {id} skeleton"}
+
+@router.post("/rewards/{reward_id}/redeem")
+def redeem_reward(
+    reward_id: int,
+    data: RewardRedeemRequest,
+    session: Session = Depends(get_session),
+):
+    return service.redeem_reward(session, reward_id, data.employee_id)
+
+
+# ── Leaderboard ─────────────────────────────────────────────────
 
 @router.get("/leaderboard")
-def get_leaderboard(session: Session = Depends(get_session)):
-    # SKELETON: To be implemented by Agent E (Includes individual & department ranks)
-    return {"message": "Get leaderboards skeleton"}
+def get_leaderboard(
+    type: str = Query("individual"),
+    limit: int = Query(default=50, le=100),
+    session: Session = Depends(get_session),
+):
+    if type == "department":
+        return service.get_department_leaderboard(session)
+    return service.get_individual_leaderboard(session, limit)
