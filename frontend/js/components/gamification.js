@@ -138,6 +138,15 @@ function checkAndAwardBadges(employeeName) {
   const employee = state.employees[employeeName];
   if (!employee) return [];
 
+  // Check the Badge Auto-Award toggle from Settings
+  const esgSettings = JSON.parse(localStorage.getItem('esg_settings') || '{}');
+  const badgeAutoAward = esgSettings.badgeAutoAward !== false; // default true
+
+  if (!badgeAutoAward) {
+    // Auto-award is disabled — skip automatic badge evaluation
+    return [];
+  }
+
   const completedChallengesCount = state.participations.filter(
     p => p.employee === employeeName && p.status === 'Approved'
   ).length;
@@ -163,13 +172,19 @@ function checkAndAwardBadges(employeeName) {
       employee.badges.push(badge.id);
       newlyAwarded.push(badge.name);
 
-      // Log notification
+      // Log in-app notification
       state.notifications.unshift({
         id: 'notif_' + Date.now() + '_' + Math.random(),
         text: `🎉 Achievement: ${employeeName} unlocked "${badge.name}" badge!`,
         date: new Date().toISOString().split('T')[0],
         type: 'badge'
       });
+
+      // Fire email alert if enabled in notification settings
+      const notifSettings = esgSettings.notifications || {};
+      if (notifSettings.badgeUnlocks_email) {
+        console.log(`✉️ Email alert sent: ${employeeName} unlocked "${badge.name}" badge.`);
+      }
     }
   });
 

@@ -285,7 +285,7 @@ function renderEnvironmentalGoals() {
   const goalRows = state.environmentalGoals.map(g => {
     const progress = Math.min(100, Math.max(0, Math.round((g.current / g.target) * 100)));
     const isSelected = state.selectedGoalId === g.id;
-    
+
     // Status outlines mapping strictly to user request:
     // Green outlines for Active / On Track, Blue outline for Completed
     let statusClass = 'status-badge-outline-green';
@@ -664,7 +664,7 @@ function bindGoalsEvents(container) {
   tableRows.forEach(row => {
     row.addEventListener('click', () => {
       const id = row.getAttribute('data-id');
-      
+
       if (state.selectedGoalId === id) {
         state.selectedGoalId = null;
         row.classList.remove('selected');
@@ -673,7 +673,7 @@ function bindGoalsEvents(container) {
         tableRows.forEach(r => r.classList.remove('selected'));
         row.classList.add('selected');
       }
-      
+
       updateGoalActionButtons();
     });
   });
@@ -906,7 +906,7 @@ function openModal(title, fieldsHtml, onSave) {
 
   overlay.querySelector('#btn-close-modal').addEventListener('click', closeModal);
   overlay.querySelector('#btn-cancel-modal').addEventListener('click', closeModal);
-  
+
   overlay.addEventListener('mousedown', (e) => {
     if (e.target === overlay) closeModal();
   });
@@ -929,7 +929,7 @@ function showToast(message, type = 'success') {
 
   const toast = document.createElement('div');
   toast.className = `env-toast env-toast-${type}`;
-  
+
   let icon = 'check-circle';
   if (type === 'warning') icon = 'alert-triangle';
   if (type === 'info') icon = 'info';

@@ -52,12 +52,30 @@ export function renderGovernancePage(container, pageKey) {
   if (!pageKey) pageKey = 'policies';
 
   // Automatically evaluate and update overdue status flags based on current time
+  const prevStatuses = {};
+  state.complianceIssues.forEach(c => { prevStatuses[c.id] = c.status; });
   state.complianceIssues.forEach(c => {
     if (c.status !== 'Resolved') {
       if (c.dueDate < SYSTEM_DATE) {
         c.status = 'Overdue';
       } else {
         c.status = 'Open';
+      }
+    }
+  });
+
+  // Fire notifications for newly-flagged overdue issues
+  const esgSettings = JSON.parse(localStorage.getItem('esg_settings') || '{}');
+  const notifSettings = esgSettings.notifications || {};
+  state.complianceIssues.forEach(c => {
+    if (c.status === 'Overdue' && prevStatuses[c.id] !== 'Overdue') {
+      // In-app toast alert for overdue issues
+      if (notifSettings.newComplianceIssue_inapp !== false) {
+        showToast(`⚠️ Compliance Issue ${c.id} is Overdue! Owner: ${c.owner} — Due: ${c.dueDate}`, 'danger');
+      }
+      // Email alert for overdue issues
+      if (notifSettings.newComplianceIssue_email) {
+        console.log(`✉️ Email alert sent: Compliance Issue ${c.id} is OVERDUE. Owner: ${c.owner}. Due: ${c.dueDate}`);
       }
     }
   });
@@ -908,11 +926,13 @@ function showAddAuditModal(onSave) {
           <div class="form-group flex-1">
             <label for="a-dept">Department</label>
             <select id="a-dept" name="department" class="form-select">
-              <option>Manufacturing</option>
-              <option>Procurement</option>
-              <option>Operations</option>
-              <option>Logistics</option>
-              <option>Human Resources</option>
+              ${(() => {
+                const storedDepts = JSON.parse(localStorage.getItem('esg_departments') || '[]');
+                const deptList = storedDepts.length > 0
+                  ? storedDepts.map(d => d.name || d)
+                  : ['Manufacturing', 'Procurement', 'Operations', 'Logistics', 'Human Resources'];
+                return deptList.map(d => `<option>${d}</option>`).join('');
+              })()}
             </select>
           </div>
           <div class="form-group flex-1" style="margin-left: 12px;">
@@ -991,6 +1011,13 @@ function showAddAuditModal(onSave) {
  * Raise Compliance Issue Modal
  */
 function showAddIssueModal(onSave) {
+  // Load departments dynamically from localStorage
+  const storedDepts = JSON.parse(localStorage.getItem('esg_departments') || '[]');
+  const deptList = storedDepts.length > 0 
+    ? storedDepts.map(d => d.name || d)
+    : ['Manufacturing', 'Procurement', 'Operations', 'Logistics', 'IT', 'Engineering'];
+  const deptOptions = deptList.map(d => `<option>${d}</option>`).join('');
+
   createModal({
     title: 'Raise Governance Compliance Issue',
     bodyHtml: `
@@ -1011,12 +1038,7 @@ function showAddIssueModal(onSave) {
           <div class="form-group flex-1" style="margin-left: 12px;">
             <label for="c-dept">Department</label>
             <select id="c-dept" name="department" class="form-select">
-              <option>Manufacturing</option>
-              <option>Procurement</option>
-              <option>Operations</option>
-              <option>Logistics</option>
-              <option>IT</option>
-              <option>Engineering</option>
+              ${deptOptions}
             </select>
           </div>
         </div>
@@ -1051,7 +1073,17 @@ function showAddIssueModal(onSave) {
       };
 
       state.complianceIssues.push(newIssue);
-      showToast(`Compliance issue ${issueId} registered & flagged.`, 'success');
+
+      // Fire notifications for new compliance issue
+      const esgSettings = JSON.parse(localStorage.getItem('esg_settings') || '{}');
+      const notifSettings = esgSettings.notifications || {};
+      if (notifSettings.newComplianceIssue_inapp !== false) {
+        showToast(`🔴 New Compliance Issue Raised: ${issueId} — ${data.issue} (${data.severity})`, 'warning');
+      }
+      if (notifSettings.newComplianceIssue_email) {
+        console.log(`✉️ Email alert sent: New compliance issue ${issueId} raised. Severity: ${data.severity}. Owner: ${data.owner}`);
+      }
+
       onSave();
     }
   });
@@ -1221,6 +1253,7 @@ function showToast(message, type = 'success') {
   let icon = 'check-circle';
   if (type === 'warning') icon = 'alert-triangle';
   if (type === 'info') icon = 'info';
+  if (type === 'danger') icon = 'alert-octagon';
 
   toast.innerHTML = `
     <i data-lucide="${icon}" class="toast-icon"></i>
@@ -1924,6 +1957,10 @@ function getGovernanceCSS() {
     }
     .gov-toast-info {
       border-left-color: var(--accent-info);
+    }
+    .gov-toast-danger {
+      border-left-color: var(--accent-danger);
+      color: #fca5a5;
     }
     .toast-icon {
       width: 20px;

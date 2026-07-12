@@ -176,7 +176,7 @@ function renderCSRActivities() {
 function renderEmployeeParticipation() {
   const pendingCount = state.approvalQueue.filter(q => q.status === 'Pending').length;
   const approvedCount = state.approvalQueue.filter(q => q.status === 'Approved').length;
-  
+
   // Calculate dynamic XP
   const basePoints = 33600;
   const dynamicPoints = state.approvalQueue
@@ -190,7 +190,7 @@ function renderEmployeeParticipation() {
     if (q.status === 'Rejected') statusClass = 'status-pill-rejected';
 
     const isPending = q.status === 'Pending';
-    const actionCell = isPending 
+    const actionCell = isPending
       ? `<div class="action-buttons-group">
            <button class="action-btn-mini btn-approve" data-id="${q.id}" title="Approve"><i data-lucide="check"></i></button>
            <button class="action-btn-mini btn-reject" data-id="${q.id}" title="Reject"><i data-lucide="x"></i></button>
@@ -387,7 +387,7 @@ function renderDiversityDashboard() {
 function renderTrainingCompletion() {
   const completedTrainings = state.trainings.filter(t => t.status === 'Completed').length;
   const inProgressTrainings = state.trainings.filter(t => t.status === 'In Progress').length;
-  
+
   // Calculate dynamic training XP
   const baseTrainingXP = 24000;
   const userTrainingXP = state.trainings
@@ -399,13 +399,13 @@ function renderTrainingCompletion() {
     let statusClass = 'status-pill-pending';
     let btnText = 'Start Course';
     let btnClass = 'btn-info';
-    
+
     if (t.status === 'In Progress') {
-      statusClass = 'status-pill-pending'; 
+      statusClass = 'status-pill-pending';
       btnText = 'Complete Course';
       btnClass = 'btn-orange';
     } else if (t.status === 'Completed') {
-      statusClass = 'status-pill-approved'; 
+      statusClass = 'status-pill-approved';
       btnText = 'Review Material';
       btnClass = 'btn-secondary';
     }
@@ -573,7 +573,15 @@ function bindActivePanelEvents(container, pageKey) {
         if (!state.selectedQueueId) return;
         const entry = state.approvalQueue.find(q => q.id === state.selectedQueueId);
         if (entry) {
+          // Check evidence required toggle in Settings
+          const settings = JSON.parse(localStorage.getItem('esg_settings') || '{}');
+          const isEvidenceRequired = settings.evidenceRequirement !== false; // default true
+          if (isEvidenceRequired && (!entry.proof || entry.proof.trim() === '' || entry.proof.toLowerCase() === 'none')) {
+            showSocialToast('Approval Blocked: Proof/evidence file is required when "Require evidence for all CSR activities" is active.', 'warning');
+            return;
+          }
           entry.status = 'Approved';
+          showSocialToast(`Submission for "${entry.activity}" approved successfully!`, 'success');
         }
         state.selectedQueueId = null;
         renderSocialPage(container, pageKey);
@@ -588,6 +596,7 @@ function bindActivePanelEvents(container, pageKey) {
         const entry = state.approvalQueue.find(q => q.id === state.selectedQueueId);
         if (entry) {
           entry.status = 'Rejected';
+          showSocialToast(`Submission for "${entry.activity}" rejected.`, 'success');
         }
         state.selectedQueueId = null;
         renderSocialPage(container, pageKey);
@@ -603,7 +612,15 @@ function bindActivePanelEvents(container, pageKey) {
         const id = btn.getAttribute('data-id');
         const entry = state.approvalQueue.find(q => q.id === id);
         if (entry) {
+          // Check evidence required toggle in Settings
+          const settings = JSON.parse(localStorage.getItem('esg_settings') || '{}');
+          const isEvidenceRequired = settings.evidenceRequirement !== false;
+          if (isEvidenceRequired && (!entry.proof || entry.proof.trim() === '' || entry.proof.toLowerCase() === 'none')) {
+            showSocialToast('Approval Blocked: Proof/evidence file is required when "Require evidence for all CSR activities" is active.', 'warning');
+            return;
+          }
           entry.status = 'Approved';
+          showSocialToast(`Submission for "${entry.activity}" approved successfully!`, 'success');
         }
         renderSocialPage(container, pageKey);
       });
@@ -617,6 +634,7 @@ function bindActivePanelEvents(container, pageKey) {
         const entry = state.approvalQueue.find(q => q.id === id);
         if (entry) {
           entry.status = 'Rejected';
+          showSocialToast(`Submission for "${entry.activity}" rejected.`, 'success');
         }
         renderSocialPage(container, pageKey);
       });
@@ -758,6 +776,9 @@ function showNewActivityModal(container) {
 }
 
 function showSubmitProofModal(container, activity) {
+  const settings = JSON.parse(localStorage.getItem('esg_settings') || '{}');
+  const isEvidenceRequired = settings.evidenceRequirement !== false; // default true
+
   const backdrop = document.createElement('div');
   backdrop.className = 'modal-backdrop';
   backdrop.id = 'social-modal-overlay';
@@ -772,14 +793,17 @@ function showSubmitProofModal(container, activity) {
       <div style="font-size: 13px; color: var(--text-secondary); margin-bottom: 8px;">
         Joining CSR Event: <strong>${activity.emoji} ${activity.title}</strong> (${activity.xp} XP)
       </div>
+      ${isEvidenceRequired ? `<div style="font-size: 12px; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); border-radius: var(--radius-sm); padding: 8px 12px; margin-bottom: 12px; color: #fca5a5;">
+        <strong>⚠ Evidence Required:</strong> A proof file or link is mandatory for this submission.
+      </div>` : ''}
       <form id="social-modal-form" class="action-form">
         <div class="form-group">
           <label>Employee Name</label>
           <input type="text" name="employee" class="form-input" value="Aditi Rao" placeholder="Enter your full name" required />
         </div>
         <div class="form-group">
-          <label>Proof Attachment (Filename / Link)</label>
-          <input type="text" name="proof" class="form-input" value="photo.jpg" placeholder="e.g. tree_plantation_selfie.png" required />
+          <label>Proof Attachment (Filename / Link) ${isEvidenceRequired ? '<span style="color: var(--accent-danger);">*</span>' : '<span style="color: var(--text-muted); font-weight: normal;">(Optional)</span>'}</label>
+          <input type="text" name="proof" class="form-input" value="" placeholder="${isEvidenceRequired ? 'e.g. tree_plantation_selfie.png (required)' : 'e.g. photo.jpg (optional)'}" ${isEvidenceRequired ? 'required' : ''} />
         </div>
         <div class="modal-actions">
           <button type="button" class="btn btn-secondary" id="btn-cancel-modal">Cancel</button>
@@ -788,6 +812,7 @@ function showSubmitProofModal(container, activity) {
       </form>
     </div>
   `;
+
 
   document.body.appendChild(backdrop);
   setTimeout(() => backdrop.classList.add('show'), 10);
@@ -1474,5 +1499,89 @@ function getSocialCSS() {
     .success-text {
       color: var(--accent-success);
     }
+
+    /* Social Toast Notifications */
+    .social-toast-container {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      z-index: 3000;
+    }
+    .social-toast {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+      padding: 12px 18px;
+      border-radius: var(--radius-md);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+      transform: translateY(20px);
+      opacity: 0;
+      transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+      min-width: 260px;
+      max-width: 420px;
+      font-size: 13px;
+    }
+    .social-toast.visible {
+      transform: translateY(0);
+      opacity: 1;
+    }
+    .social-toast-success {
+      background: #1e3a2e;
+      border: 1px solid #16a34a;
+      color: #bbf7d0;
+    }
+    .social-toast-warning {
+      background: #3b1a1a;
+      border: 1px solid #dc2626;
+      color: #fecaca;
+    }
+    .social-toast-close {
+      background: none;
+      border: none;
+      color: currentColor;
+      font-size: 16px;
+      cursor: pointer;
+      opacity: 0.7;
+      padding: 0;
+      line-height: 1;
+    }
+    .social-toast-close:hover { opacity: 1; }
   `;
+}
+
+function showSocialToast(message, type = 'success') {
+  let container = document.getElementById('social-toast-container');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'social-toast-container';
+    container.className = 'social-toast-container';
+    document.body.appendChild(container);
+  }
+
+  const toast = document.createElement('div');
+  toast.className = `social-toast social-toast-${type}`;
+  toast.innerHTML = `
+    <span>${message}</span>
+    <button class="social-toast-close">&times;</button>
+  `;
+  container.appendChild(toast);
+
+  requestAnimationFrame(() => {
+    requestAnimationFrame(() => toast.classList.add('visible'));
+  });
+
+  const dismissTimer = setTimeout(() => {
+    toast.classList.remove('visible');
+    setTimeout(() => toast.remove(), 300);
+  }, 4500);
+
+  toast.querySelector('.social-toast-close').addEventListener('click', () => {
+    clearTimeout(dismissTimer);
+    toast.classList.remove('visible');
+    setTimeout(() => toast.remove(), 300);
+  });
 }
