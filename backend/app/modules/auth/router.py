@@ -8,6 +8,8 @@ from app.modules.auth.service import (
     hash_password,
     authenticate_user,
     create_access_token,
+    create_refresh_token,
+    verify_refresh_token,
     get_current_user,
     require_admin,
     get_departments,
@@ -34,9 +36,13 @@ class EmployeeResponse(BaseModel):
     name: str
     email: str
     role: str
+    gender: Optional[str] = None
+    designation: Optional[str] = None
+    bio: Optional[str] = None
     department_id: Optional[int] = None
     xp_points: int
     redeemable_points: int
+    is_email_verified: bool = False
 
     model_config = {"from_attributes": True}
 
@@ -46,7 +52,17 @@ class LoginRequest(BaseModel):
 
 class TokenResponse(BaseModel):
     access_token: str
+    refresh_token: Optional[str] = None
     token_type: str = "bearer"
+
+class RefreshRequest(BaseModel):
+    refresh_token: str
+
+class ProfileUpdate(BaseModel):
+    name: Optional[str] = Field(default=None, min_length=1, max_length=100)
+    designation: Optional[str] = Field(default=None, max_length=100)
+    gender: Optional[str] = Field(default=None)
+    bio: Optional[str] = Field(default=None, max_length=250)
 
 class DepartmentCreate(BaseModel):
     name: str = Field(min_length=1, max_length=100)
@@ -102,10 +118,38 @@ def login(data: LoginRequest, session: Session = Depends(get_session)):
     if not employee:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid email or password")
     access_token = create_access_token(data={"sub": employee.email})
-    return TokenResponse(access_token=access_token)
+    refresh_token = create_refresh_token(data={"sub": employee.email})
+    return TokenResponse(access_token=access_token, refresh_token=refresh_token)
+
+@router.post("/refresh", response_model=TokenResponse)
+def refresh_token(data: RefreshRequest, session: Session = Depends(get_session)):
+    payload = verify_refresh_token(data.refresh_token)
+    if not payload:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid or expired refresh token")
+    email = payload.get("sub")
+    employee = session.exec(select(Employee).where(Employee.email == email)).first()
+    if not employee:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User not found")
+    access_token = create_access_token(data={"sub": employee.email})
+    refresh_token = create_refresh_token(data={"sub": employee.email})
+    return TokenResponse(access_token=access_token, refresh_token=refresh_token)
 
 @router.get("/me", response_model=EmployeeResponse)
 def get_me(current_user: Employee = Depends(get_current_user)):
+    return current_user
+
+@router.put("/me/profile")
+def update_profile(
+    data: ProfileUpdate,
+    current_user: Employee = Depends(get_current_user),
+    session: Session = Depends(get_session),
+):
+    update_data = data.model_dump(exclude_unset=True, exclude_none=True)
+    for key, value in update_data.items():
+        setattr(current_user, key, value)
+    session.add(current_user)
+    session.commit()
+    session.refresh(current_user)
     return current_user
 
 # --- Department Endpoints ---

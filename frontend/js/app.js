@@ -5,11 +5,16 @@ import { renderGovernancePage } from './components/governance.js';
 import { renderGamificationPage } from './components/gamification.js';
 import { renderReportsPage } from './components/reports.js';
 import { renderSettingsPage } from './components/settings.js';
+import { renderChatbotPage } from './components/chatbot.js';
+import { renderProfilePage } from './components/profile.js';
 import { isAuthenticated, getStoredUser, logout } from './api/auth.js';
 import { login, register } from './api/auth.js';
+import * as settingsApi from './api/settings.js';
 
 const routes = {
   'dashboard': renderDashboard,
+  'chatbot': renderChatbotPage,
+  'profile': renderProfilePage,
 
   'environmental/emission-factors': (container) => renderEnvironmentalPage(container, 'emission-factors'),
   'environmental/product-esg-profiles': (container) => renderEnvironmentalPage(container, 'product-esg-profiles'),
@@ -254,8 +259,12 @@ function updateUserNav() {
   if (user) {
     const initial = user.name ? user.name.charAt(0).toUpperCase() : '?';
     userSection.innerHTML = `
-      <span class="nav-user-avatar" title="${user.name}">${initial}</span>
-      <span class="nav-user-name">${user.name}</span>
+      <div class="nav-notifications" id="nav-notifications" style="position:relative;display:inline-flex;align-items:center;margin-right:12px;cursor:pointer;">
+        <i data-lucide="bell" style="width:18px;height:18px;color:var(--text-muted);"></i>
+        <span id="notif-badge" class="notif-badge" style="display:none;position:absolute;top:-6px;right:-6px;background:#EF4444;color:#fff;font-size:10px;font-weight:700;width:16px;height:16px;border-radius:50%;display:none;align-items:center;justify-content:center;"></span>
+      </div>
+      <a href="#profile" class="nav-user-avatar" title="${user.name}">${initial}</a>
+      <a href="#profile" class="nav-user-name">${user.name}</a>
       <button class="nav-logout-btn" id="logout-btn">Logout</button>
     `;
 
@@ -265,6 +274,21 @@ function updateUserNav() {
         logout();
         window.location.hash = '#auth/login';
       });
+    }
+
+    const notifIcon = userSection.querySelector('#nav-notifications');
+    if (notifIcon) {
+      notifIcon.addEventListener('click', () => window.location.hash = '#settings/notification-settings');
+    }
+
+    if (user.id) {
+      settingsApi.getNotifications(user.id, true).then(notifs => {
+        const badge = document.getElementById('notif-badge');
+        if (badge && notifs.length > 0) {
+          badge.textContent = notifs.length > 9 ? '9+' : notifs.length;
+          badge.style.display = 'flex';
+        }
+      }).catch(() => {});
     }
   } else {
     userSection.innerHTML = '';

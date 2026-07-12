@@ -1,5 +1,7 @@
+import os
 from sqlmodel import Session, select
 from app.modules.settings.models import SystemConfiguration, Category, Notification
+from app.modules.auth.models import Employee
 from pydantic import BaseModel, Field, field_validator, model_validator
 from typing import Optional, Literal
 
@@ -61,7 +63,14 @@ def create_category(session: Session, data: CategoryCreate) -> Category:
 
 # Notification Engine
 
-def create_notification(session: Session, employee_id: int, title: str, message: str, notification_type: str = "system") -> Notification:
+def create_notification(
+    session: Session,
+    employee_id: int,
+    title: str,
+    message: str,
+    notification_type: str = "system",
+    send_email: bool = False,
+) -> Notification:
     notification = Notification(
         employee_id=employee_id,
         title=title,
@@ -71,7 +80,65 @@ def create_notification(session: Session, employee_id: int, title: str, message:
     session.add(notification)
     session.commit()
     session.refresh(notification)
+
+    if send_email:
+        _send_notification_email(session, employee_id, title, message, notification_type)
+
     return notification
+
+def notify_admins(
+    session: Session,
+    title: str,
+    message: str,
+    notification_type: str = "system",
+    send_email: bool = False,
+):
+    admins = session.exec(
+        select(Employee).where(Employee.role.in_(["Admin", "ESG Manager"]))
+    ).all()
+    for admin in admins:
+        create_notification(
+            session=session,
+            employee_id=admin.id,
+            title=title,
+            message=message,
+            notification_type=notification_type,
+            send_email=send_email,
+        )
+
+def notify_department(
+    session: Session,
+    department_id: int,
+    title: str,
+    message: str,
+    notification_type: str = "system",
+):
+    employees = session.exec(
+        select(Employee).where(Employee.department_id == department_id)
+    ).all()
+    for emp in employees:
+        create_notification(
+            session=session,
+            employee_id=emp.id,
+            title=title,
+            message=message,
+            notification_type=notification_type,
+        )
+
+def _send_notification_email(session: Session, employee_id: int, title: str, message: str, notification_type: str):
+    try:
+        from app.services.email_service import send_notification_email as send_email
+        employee = session.get(Employee, employee_id)
+        if employee and employee.email:
+            send_email(
+                to=employee.email,
+                name=employee.name,
+                title=title,
+                message=message,
+                link=f"/{notification_type}",
+            )
+    except Exception:
+        pass
 
 def get_user_notifications(session: Session, employee_id: int, unread_only: bool = False) -> list[Notification]:
     query = select(Notification).where(Notification.employee_id == employee_id)

@@ -20,9 +20,14 @@ class Employee(SQLModel, table=True):
     password_hash: str
     role: str = Field(default="Employee")  # Admin, ESG Manager, Employee
     gender: Optional[str] = None  # Male, Female, Non-Binary, Prefer not to say
+    designation: Optional[str] = Field(default=None, max_length=100)
+    bio: Optional[str] = Field(default=None, max_length=250)
     department_id: Optional[int] = Field(default=None, foreign_key="department.id")
     xp_points: int = Field(default=0)
     redeemable_points: int = Field(default=0)
+    is_email_verified: bool = Field(default=False)
+    email_verification_token: Optional[str] = None
+    password_reset_token: Optional[str] = None
     
     # Relationships
     department: Optional[Department] = Relationship(back_populates="employees")

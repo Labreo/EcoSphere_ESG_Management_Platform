@@ -26,6 +26,21 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     to_encode.update({"exp": expire})
     return jwt.encode(to_encode, settings.SECRET_KEY, algorithm=ALGORITHM)
 
+def create_refresh_token(data: dict, expires_delta: Optional[timedelta] = None) -> str:
+    to_encode = data.copy()
+    expire = datetime.now(timezone.utc) + (expires_delta or timedelta(minutes=settings.REFRESH_TOKEN_EXPIRE_MINUTES))
+    to_encode.update({"exp": expire, "type": "refresh"})
+    return jwt.encode(to_encode, settings.JWT_REFRESH_SECRET, algorithm=ALGORITHM)
+
+def verify_refresh_token(token: str) -> Optional[dict]:
+    try:
+        payload = jwt.decode(token, settings.JWT_REFRESH_SECRET, algorithms=[ALGORITHM])
+        if payload.get("type") != "refresh":
+            return None
+        return payload
+    except JWTError:
+        return None
+
 def authenticate_user(session: Session, email: str, password: str) -> Optional[Employee]:
     employee = session.exec(select(Employee).where(Employee.email == email)).first()
     if not employee or not verify_password(password, employee.password_hash):
