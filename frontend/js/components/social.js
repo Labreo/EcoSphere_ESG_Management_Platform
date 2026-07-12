@@ -3,7 +3,6 @@
  */
 
 import * as api from '../api/social.js';
-import * as socialApi from '../api/social.js';
 import { showToast, renderLoading } from '../api/toast.js';
 
 const MOCK_ACTIVITIES = [
