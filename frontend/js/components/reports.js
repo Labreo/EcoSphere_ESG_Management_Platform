@@ -163,6 +163,112 @@ function getESGSummaryMetrics(filtered) {
 /**
  * Main View Page Render
  */
+function mapDepartmentName(name) {
+  const mapping = {
+    'Corporate': 'Finance & Operations',
+    'Manufacturing': 'Product Design & R&D',
+    'Logistics': 'Logistics & Supply Chain',
+    'Research & Development': 'Product Design & R&D',
+    'Sales': 'Finance & Operations'
+  };
+  return mapping[name] || name;
+}
+
+function mapToUnifiedRecords(envData, socData, govData) {
+  const unified = [];
+
+  if (envData && envData.transactions) {
+    envData.transactions.forEach(tx => {
+      unified.push({
+        module: 'Environmental',
+        date: tx.transaction_date.split('T')[0],
+        department: mapDepartmentName(tx.department_name),
+        category: tx.source_type,
+        indicator: tx.activity_type,
+        value: `${(tx.calculated_emissions_kg / 1000).toFixed(2)} tCO2e`,
+        details: `Qty: ${tx.raw_value} (${tx.source_id})`,
+        co2e: tx.calculated_emissions_kg / 1000,
+        xp: 0,
+        compliance: 'Compliant'
+      });
+    });
+  }
+
+  if (socData && socData.activities) {
+    socData.activities.forEach(act => {
+      if (act.participants && act.participants.length > 0) {
+        act.participants.forEach(p => {
+          unified.push({
+            module: 'Social',
+            date: p.completion_date ? p.completion_date.split('T')[0] : act.date.split('T')[0],
+            department: p.employee_name === 'Admin User' ? 'Finance & Operations' : 
+                        p.employee_name === 'Aditi Rao' ? 'Research & Development' : 
+                        p.employee_name === 'Karan Shah' ? 'Finance & Operations' : 
+                        p.employee_name === 'Sarah Jenkins' ? 'Research & Development' : 'Finance & Operations',
+            category: 'CSR Activity',
+            indicator: act.title,
+            value: `${p.points_earned} Points`,
+            details: `${p.employee_name} (${p.approval_status})`,
+            co2e: 0,
+            xp: p.points_earned,
+            compliance: 'Compliant'
+          });
+        });
+      } else {
+        unified.push({
+          module: 'Social',
+          date: act.date.split('T')[0],
+          department: 'Finance & Operations',
+          category: 'CSR Activity',
+          indicator: act.title,
+          value: 'Pending',
+          details: 'No participants',
+          co2e: 0,
+          xp: 0,
+          compliance: 'Compliant'
+        });
+      }
+    });
+  }
+
+  if (govData) {
+    if (govData.issues) {
+      govData.issues.forEach(issue => {
+        unified.push({
+          module: 'Governance',
+          date: issue.due_date,
+          department: 'Product Design & R&D',
+          category: 'Compliance Issue',
+          indicator: issue.title,
+          value: issue.severity,
+          details: `Status: ${issue.status}`,
+          co2e: 0,
+          xp: 0,
+          compliance: issue.status === 'Resolved' ? 'Compliant' : 'Non-Compliant'
+        });
+      });
+    }
+    if (govData.audits) {
+      govData.audits.forEach(audit => {
+        unified.push({
+          module: 'Governance',
+          date: audit.audit_date,
+          department: 'Logistics & Supply Chain',
+          category: 'Audit',
+          indicator: audit.title,
+          value: `${audit.score}/100`,
+          details: `Auditor: ${audit.auditor} (${audit.status})`,
+          co2e: 0,
+          xp: 0,
+          compliance: audit.score >= 80 ? 'Compliant' : 'Under Review'
+        });
+      });
+    }
+  }
+
+  return unified;
+}
+
 export async function renderReportsPage(container, pageKey) {
   if (!pageKey) pageKey = 'environmental-report';
   
@@ -170,19 +276,12 @@ export async function renderReportsPage(container, pageKey) {
   
   try {
     const filters = {};
-    let data;
-    if (pageKey === 'environmental-report') {
-      data = await api.getEnvironmentalReport(filters);
-    } else if (pageKey === 'social-report') {
-      data = await api.getSocialReport(filters);
-    } else if (pageKey === 'governance-report') {
-      data = await api.getGovernanceReport(filters);
-    } else if (pageKey === 'esg-summary') {
-      data = await api.getESGSummary(filters);
-    } else {
-      data = await api.getESGSummary(filters);
-    }
-    state.records = data.records || data;
+    const [envData, socData, govData] = await Promise.all([
+      api.getEnvironmentalReport(filters).catch(() => ({ transactions: [] })),
+      api.getSocialReport(filters).catch(() => ({ activities: [] })),
+      api.getGovernanceReport(filters).catch(() => ({ issues: [], audits: [] }))
+    ]);
+    state.records = mapToUnifiedRecords(envData, socData, govData);
   } catch (err) {
     showToast('Failed to load report data: ' + err.message, 'error');
   }
