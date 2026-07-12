@@ -1,5 +1,5 @@
 from sqlmodel import Session, select
-from datetime import date
+from datetime import date, datetime
 from typing import List, Optional
 
 from app.modules.settings.models import Notification
@@ -212,3 +212,46 @@ def check_overdue_issues(session: Session) -> List[Notification]:
         session.commit()
 
     return notifications
+
+
+# ──────────────────────────────────────────────
+#  Enhanced Audit Workflow
+# ──────────────────────────────────────────────
+
+def complete_audit(session: Session, audit_id: int, findings: str) -> Optional[Audit]:
+    audit = session.get(Audit, audit_id)
+    if not audit:
+        return None
+    audit.status = "Completed"
+    if hasattr(audit, 'findings'):
+        audit.findings = findings
+    session.add(audit)
+    session.commit()
+    session.refresh(audit)
+    return audit
+
+
+def resolve_issue(session: Session, issue_id: int, resolution_notes: str) -> Optional[ComplianceIssue]:
+    issue = session.get(ComplianceIssue, issue_id)
+    if not issue:
+        return None
+    issue.status = "Resolved"
+    if hasattr(issue, 'resolution_notes'):
+        issue.resolution_notes = resolution_notes
+    session.add(issue)
+    session.commit()
+    session.refresh(issue)
+    return issue
+
+
+def review_issue(session: Session, issue_id: int, new_status: str, review_notes: str) -> Optional[ComplianceIssue]:
+    issue = session.get(ComplianceIssue, issue_id)
+    if not issue:
+        return None
+    issue.status = new_status
+    if hasattr(issue, 'review_notes'):
+        issue.review_notes = review_notes
+    session.add(issue)
+    session.commit()
+    session.refresh(issue)
+    return issue

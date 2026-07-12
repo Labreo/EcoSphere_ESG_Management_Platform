@@ -9,6 +9,7 @@ logger = logging.getLogger(__name__)
 # Import Routers
 from app.modules.auth.router import router as auth_router
 from app.modules.auth.router import dept_router
+from app.modules.auth.router import users_router
 from app.modules.settings.router import router as settings_router
 from app.modules.settings.router import notifications_router
 from app.modules.environmental.router import router as environmental_router
@@ -58,6 +59,7 @@ def on_startup():
 # Include Routers under standard API v1 path
 app.include_router(auth_router, prefix=settings.API_V1_STR)
 app.include_router(dept_router, prefix=settings.API_V1_STR)
+app.include_router(users_router, prefix=settings.API_V1_STR)
 app.include_router(settings_router, prefix=settings.API_V1_STR)
 app.include_router(environmental_router, prefix=settings.API_V1_STR)
 app.include_router(social_router, prefix=settings.API_V1_STR)

@@ -5,19 +5,42 @@ from fastapi.testclient import TestClient
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
+# Import all models to register in metadata
+from app.modules.auth.models import Department, Employee
+from app.modules.settings.models import Category, DepartmentScore, SystemConfiguration, Notification
+from app.modules.environmental.models import EmissionFactor, ProductESGProfile, EnvironmentalGoal, CarbonTransaction
+from app.modules.social.models import CSRActivity, EmployeeParticipation
+from app.modules.governance.models import ESGPolicy, PolicyAcknowledgement, Audit, ComplianceIssue
+from app.modules.gamification.models import Badge, Reward, Challenge, ChallengeParticipation, BadgeUnlock, RewardRedemption
+
+import tempfile
+_db_fd, _db_path = tempfile.mkstemp(suffix=".db")
+import os
+os.close(_db_fd)
+from sqlmodel import create_engine
+engine = create_engine(f"sqlite:///{_db_path}", connect_args={"check_same_thread": False})
+
+def override_get_session():
+    with Session(engine) as session:
+        yield session
+
 from app.main import app
-from app.database import engine, init_db
+from app.database import init_db, get_session
 from sqlmodel import Session, SQLModel
 
 client = TestClient(app)
 
-
 def setup_module():
     SQLModel.metadata.create_all(engine)
-
+    app.dependency_overrides[get_session] = override_get_session
 
 def teardown_module():
     SQLModel.metadata.drop_all(engine)
+    app.dependency_overrides.clear()
+    try:
+        os.unlink(_db_path)
+    except Exception:
+        pass
 
 
 def _create_policy(session: Session, title="Test Policy", status="Draft"):

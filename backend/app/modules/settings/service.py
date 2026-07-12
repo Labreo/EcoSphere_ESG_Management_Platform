@@ -156,3 +156,16 @@ def mark_notification_read(session: Session, notification_id: int, employee_id: 
         session.refresh(notification)
         return notification
     return None
+
+def mark_all_notifications_read(session: Session, employee_id: int) -> int:
+    count = session.exec(
+        select(Notification).where(
+            Notification.employee_id == employee_id,
+            Notification.is_read == False
+        )
+    ).all()
+    for n in count:
+        n.is_read = True
+        session.add(n)
+    session.commit()
+    return len(count)

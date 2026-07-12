@@ -96,3 +96,7 @@ export async function getNotifications(employeeId, unreadOnly = false) {
 export async function markNotificationRead(id, employeeId) {
   return patch(`/notifications/${id}/read?employee_id=${employeeId}`);
 }
+
+export async function markAllNotificationsRead(employeeId) {
+  return patch(`/notifications/read-all?employee_id=${employeeId}`);
+}

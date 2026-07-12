@@ -48,6 +48,7 @@ def seed_initial_data():
             Employee(name="Karan Shah", email="karan@ecosphere.com", password_hash=hash_password("karan123"), role="Employee", gender="Male", department_id=depts[0].id, xp_points=1250, redeemable_points=400),
             Employee(name="Sarah Jenkins", email="sarah@ecosphere.com", password_hash=hash_password("sarah123"), role="Employee", gender="Female", department_id=depts[3].id, xp_points=1480, redeemable_points=600),
             Employee(name="Mark Robinson", email="mark@ecosphere.com", password_hash=hash_password("mark123"), role="Employee", gender="Male", department_id=depts[2].id, xp_points=850, redeemable_points=200),
+            Employee(name="Auditor User", email="auditor@ecosphere.com", password_hash=hash_password("auditor123"), role="Auditor", gender="Prefer not to say", department_id=depts[0].id, xp_points=2000, redeemable_points=800),
         ]
         session.add_all(employees)
         session.flush()

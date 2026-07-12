@@ -1,11 +1,17 @@
 from datetime import date, timedelta
 from fastapi.testclient import TestClient
+
+# Import all models to register in metadata
+from app.modules.auth.models import Department, Employee
+from app.modules.settings.models import Category, DepartmentScore, SystemConfiguration, Notification
+from app.modules.environmental.models import EmissionFactor, ProductESGProfile, EnvironmentalGoal, CarbonTransaction
+from app.modules.social.models import CSRActivity, EmployeeParticipation
+from app.modules.governance.models import ESGPolicy, PolicyAcknowledgement, Audit, ComplianceIssue
+from app.modules.gamification.models import Badge, Reward, Challenge, ChallengeParticipation, BadgeUnlock, RewardRedemption
+
 from app.main import app
 from app.database import get_session
 from sqlmodel import Session, SQLModel, create_engine
-from app.modules.auth.models import Employee, Department
-from app.modules.social.models import CSRActivity, EmployeeParticipation
-from app.modules.settings.models import SystemConfiguration, Category
 from app.modules.auth.service import hash_password, create_access_token
 
 TEST_DB_URL = "sqlite:///./test_ecosphere.db"
@@ -15,8 +21,10 @@ def override_get_session():
     with Session(test_engine) as session:
         yield session
 
-app.dependency_overrides[get_session] = override_get_session
 client = TestClient(app)
+
+def setup_module():
+    app.dependency_overrides[get_session] = override_get_session
 
 
 def _create_admin(session):
@@ -393,3 +401,13 @@ class TestSocialModule:
         assert data["total_employees"] >= 5
         assert "Engineering" in data["department_dispersion"]
         assert "Marketing" in data["department_dispersion"]
+
+
+def teardown_module():
+    app.dependency_overrides.clear()
+    try:
+        import os
+        if os.path.exists("./test_ecosphere.db"):
+            os.remove("./test_ecosphere.db")
+    except Exception:
+        pass

@@ -21,6 +21,7 @@ from app.modules.auth.service import (
 
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 dept_router = APIRouter(prefix="/departments", tags=["Departments"])
+users_router = APIRouter(prefix="/users", tags=["Users"])
 
 # --- Schemas ---
 
@@ -28,7 +29,7 @@ class EmployeeCreate(BaseModel):
     name: str = Field(min_length=1, max_length=100)
     email: EmailStr
     password: str = Field(min_length=8, max_length=128)
-    role: Literal["Admin", "Manager", "Employee"] = "Employee"
+    role: Literal["Admin", "Manager", "Employee", "Auditor"] = "Employee"
     department_id: Optional[int] = Field(default=None, gt=0)
 
 class EmployeeResponse(BaseModel):
@@ -90,6 +91,27 @@ class DepartmentResponse(BaseModel):
     status: str
 
     model_config = {"from_attributes": True}
+
+class EmployeeWithDepartment(EmployeeResponse):
+    department: Optional[DepartmentResponse] = None
+
+    model_config = {"from_attributes": True}
+
+# --- Users Endpoints ---
+
+@users_router.get("/role/{role}", response_model=list[EmployeeWithDepartment])
+def get_users_by_role(role: str, session: Session = Depends(get_session)):
+    employees = session.exec(
+        select(Employee).where(Employee.role == role)
+    ).all()
+    return employees
+
+@users_router.get("", response_model=list[EmployeeWithDepartment])
+def list_all_users(session: Session = Depends(get_session)):
+    employees = session.exec(select(Employee)).all()
+    return employees
+
+# --- Department Endpoints ---
 
 # --- Auth Endpoints ---
 

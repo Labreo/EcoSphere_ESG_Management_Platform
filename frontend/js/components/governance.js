@@ -301,6 +301,9 @@ function renderAudits() {
       statusCell = `<span class="status-tag-outline status-tag-info">${a.status}</span>`;
     }
 
+    const isCompleted = a.status === 'Completed';
+    const completeBtn = isCompleted ? '' : `<button class="btn btn-sm btn-success btn-complete-audit" data-id="${a.id}" title="Complete Assessment"><i data-lucide="check-circle"></i></button>`;
+
     return `
       <tr>
         <td><strong>${a.title}</strong></td>
@@ -309,6 +312,7 @@ function renderAudits() {
         <td>${a.date}</td>
         <td>${a.findings}</td>
         <td>${statusCell}</td>
+        <td class="cell-actions">${completeBtn}</td>
       </tr>
     `;
   }).join('');
@@ -371,10 +375,11 @@ function renderAudits() {
               <th>Date</th>
               <th>Findings</th>
               <th>Status</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody>
-            ${auditRows.length > 0 ? auditRows : `<tr><td colspan="6" style="text-align: center; color: var(--text-muted);">No audits found.</td></tr>`}
+            ${auditRows.length > 0 ? auditRows : `<tr><td colspan="7" style="text-align: center; color: var(--text-muted);">No audits found.</td></tr>`}
           </tbody>
         </table>
       </div>
@@ -436,7 +441,22 @@ function renderComplianceIssues() {
       statusCell = `<span class="status-tag-outline status-tag-pending">${c.status}</span>`;
     }
 
-    const actionText = c.status === 'Resolved' ? 'Reopen' : 'Resolve';
+    let actionHtml = '';
+    if (c.status === 'Open') {
+      actionHtml = `
+        <button class="btn btn-secondary btn-mini-act btn-resolve-issue" data-id="${c.id}" title="Resolve with Notes"><i data-lucide="check-circle"></i> Resolve</button>
+        <button class="btn btn-secondary btn-mini-act btn-edit-owner" data-id="${c.id}" title="Edit Owner & Due Date"><i data-lucide="user-cog" style="width: 13px; height: 13px;"></i></button>
+      `;
+    } else if (c.status === 'Resolved') {
+      actionHtml = `
+        <button class="btn btn-sm btn-success btn-verify-issue" data-id="${c.id}" title="Verify & Close"><i data-lucide="shield-check"></i> Verify & Close</button>
+        <button class="btn btn-sm btn-danger btn-reject-resolution" data-id="${c.id}" title="Reject Remediation"><i data-lucide="x-circle"></i> Reject</button>
+      `;
+    } else {
+      actionHtml = `
+        <button class="btn btn-secondary btn-mini-act btn-reopen-issue" data-id="${c.id}" title="Reopen">${c.status === 'Overdue' ? 'Reopen' : 'Reopen'}</button>
+      `;
+    }
     
     return `
       <tr>
@@ -446,10 +466,7 @@ function renderComplianceIssues() {
         <td>${c.owner}</td>
         <td>${c.dueDate}</td>
         <td>${statusCell}</td>
-        <td class="cell-actions">
-          <button class="btn btn-secondary btn-mini-act btn-toggle-resolve" data-id="${c.id}">${actionText}</button>
-          <button class="btn btn-secondary btn-mini-act btn-edit-owner" data-id="${c.id}" title="Edit Owner & Due Date"><i data-lucide="user-cog" style="width: 13px; height: 13px;"></i></button>
-        </td>
+        <td class="cell-actions">${actionHtml}</td>
       </tr>
     `;
   }).join('');
@@ -643,6 +660,32 @@ function bindActivePanelEvents(container, pageKey) {
       });
     }
 
+    // Complete assessment button
+    const completeBtns = container.querySelectorAll('.btn-complete-audit');
+    completeBtns.forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        const id = e.currentTarget.getAttribute('data-id');
+        const findings = prompt('Enter final audit findings summary:');
+        if (findings === null) return;
+        try {
+          const response = await fetch(`/api/v1/governance/audits/${id}/complete`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ findings })
+          });
+          if (response.ok) {
+            showToast('Audit completed successfully!', 'success');
+            refresh();
+          } else {
+            const err = await response.json();
+            showToast(err.detail || 'Failed to complete audit', 'error');
+          }
+        } catch (err) {
+          showToast('Error completing audit: ' + err.message, 'error');
+        }
+      });
+    });
+
     // Export button
     const exportBtn = container.querySelector('#btn-export-audit');
     const exportMenu = container.querySelector('#export-dropdown-menu');
@@ -729,21 +772,92 @@ function bindActivePanelEvents(container, pageKey) {
 
     // Register table actions (Resolve & Edit Owner)
     const bindRegisterActions = () => {
-      // Toggle status (Open/Resolved)
-      const resolveBtns = container.querySelectorAll('.btn-toggle-resolve');
+      // Resolve issue with notes
+      const resolveBtns = container.querySelectorAll('.btn-resolve-issue');
       resolveBtns.forEach(btn => {
         btn.addEventListener('click', async (e) => {
           const id = e.currentTarget.getAttribute('data-id');
-          const issue = complianceIssues.find(c => c.id === id);
-          if (issue) {
-            if (issue.status === 'Resolved') {
-              await api.updateIssue({ id, status: 'Open' });
-              showToast(`Compliance issue ${id} reopened successfully.`, 'info');
+          const notes = prompt('Enter resolution notes / remediation actions implemented:');
+          if (notes === null) return;
+          try {
+            const response = await fetch(`/api/v1/governance/issues/${id}/resolve`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ resolution_notes: notes })
+            });
+            if (response.ok) {
+              showToast(`Compliance issue ${id} resolved successfully!`, 'success');
+              refresh();
             } else {
-              await api.updateIssue({ id, status: 'Resolved' });
-              showToast(`Compliance issue ${id} marked as Resolved.`, 'success');
+              showToast('Failed to resolve issue', 'error');
             }
+          } catch (err) {
+            showToast('Error: ' + err.message, 'error');
+          }
+        });
+      });
+
+      // Verify & Close
+      const verifyBtns = container.querySelectorAll('.btn-verify-issue');
+      verifyBtns.forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          const id = e.currentTarget.getAttribute('data-id');
+          const notes = prompt('Enter verification notes:');
+          if (notes === null) return;
+          try {
+            const response = await fetch(`/api/v1/governance/issues/${id}/review`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ status: 'Closed', review_notes: notes })
+            });
+            if (response.ok) {
+              showToast(`Issue ${id} verified and closed!`, 'success');
+              refresh();
+            } else {
+              showToast('Failed to verify issue', 'error');
+            }
+          } catch (err) {
+            showToast('Error: ' + err.message, 'error');
+          }
+        });
+      });
+
+      // Reject remediation
+      const rejectBtns = container.querySelectorAll('.btn-reject-resolution');
+      rejectBtns.forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          const id = e.currentTarget.getAttribute('data-id');
+          const notes = prompt('Enter reason for rejection / additional actions required:');
+          if (notes === null) return;
+          try {
+            const response = await fetch(`/api/v1/governance/issues/${id}/review`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ status: 'In Progress', review_notes: notes })
+            });
+            if (response.ok) {
+              showToast(`Issue ${id} sent back for refinement.`, 'info');
+              refresh();
+            } else {
+              showToast('Failed to process rejection', 'error');
+            }
+          } catch (err) {
+            showToast('Error: ' + err.message, 'error');
+          }
+        });
+      });
+
+      // Reopen issue
+      const reopenBtns = container.querySelectorAll('.btn-reopen-issue');
+      reopenBtns.forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          const id = e.currentTarget.getAttribute('data-id');
+          try {
+            await api.updateIssue({ id, status: 'Open' });
+            showToast(`Issue ${id} reopened.`, 'info');
             refresh();
+          } catch (err) {
+            showToast('Failed to reopen issue', 'error');
           }
         });
       });

@@ -4,7 +4,7 @@ from app.database import get_session
 from app.modules.settings.service import (
     get_config, update_config, ConfigUpdate,
     list_categories, create_category, CategoryCreate,
-    get_user_notifications, mark_notification_read, create_notification
+    get_user_notifications, mark_notification_read, mark_all_notifications_read, create_notification
 )
 from typing import Optional
 
@@ -53,3 +53,8 @@ def mark_as_read(notification_id: int, employee_id: int = Query(...), session: S
     if not result:
         raise HTTPException(status_code=404, detail="Notification not found")
     return result
+
+@notifications_router.patch("/read-all")
+def mark_all_read(employee_id: int = Query(...), session: Session = Depends(get_session)):
+    count = mark_all_notifications_read(session, employee_id)
+    return {"success": True, "marked_read": count}

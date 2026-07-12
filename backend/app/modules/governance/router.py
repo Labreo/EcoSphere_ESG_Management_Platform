@@ -1,4 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel
 from sqlmodel import Session
 from app.database import get_session
 
@@ -33,6 +34,9 @@ from app.modules.governance.service import (
     update_issue,
     update_policy,
     check_overdue_issues,
+    complete_audit,
+    resolve_issue,
+    review_issue,
 )
 
 router = APIRouter(prefix="/governance", tags=["Governance Module"])
@@ -121,6 +125,16 @@ def delete_audit_endpoint(audit_id: int, session: Session = Depends(get_session)
     if not delete_audit(session, audit_id):
         raise HTTPException(status_code=404, detail="Audit not found")
 
+class AuditCompleteRequest(BaseModel):
+    findings: str
+
+@router.post("/audits/{audit_id}/complete", response_model=Audit)
+def complete_audit_endpoint(audit_id: int, data: AuditCompleteRequest, session: Session = Depends(get_session)):
+    audit = complete_audit(session, audit_id, data.findings)
+    if not audit:
+        raise HTTPException(status_code=404, detail="Audit not found")
+    return audit
+
 
 # ──────────────────────────────────────────────
 #  Compliance Issues
@@ -157,6 +171,27 @@ def update_issue_endpoint(issue_id: int, data: ComplianceIssueUpdate, session: S
 def delete_issue_endpoint(issue_id: int, session: Session = Depends(get_session)):
     if not delete_issue(session, issue_id):
         raise HTTPException(status_code=404, detail="Compliance issue not found")
+
+class IssueResolveRequest(BaseModel):
+    resolution_notes: str
+
+@router.post("/issues/{issue_id}/resolve", response_model=ComplianceIssue)
+def resolve_issue_endpoint(issue_id: int, data: IssueResolveRequest, session: Session = Depends(get_session)):
+    issue = resolve_issue(session, issue_id, data.resolution_notes)
+    if not issue:
+        raise HTTPException(status_code=404, detail="Compliance issue not found")
+    return issue
+
+class IssueReviewRequest(BaseModel):
+    status: str
+    review_notes: str
+
+@router.post("/issues/{issue_id}/review", response_model=ComplianceIssue)
+def review_issue_endpoint(issue_id: int, data: IssueReviewRequest, session: Session = Depends(get_session)):
+    issue = review_issue(session, issue_id, data.status, data.review_notes)
+    if not issue:
+        raise HTTPException(status_code=404, detail="Compliance issue not found")
+    return issue
 
 
 # ──────────────────────────────────────────────

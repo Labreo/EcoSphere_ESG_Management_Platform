@@ -1,3 +1,4 @@
+from typing import Optional
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from sqlmodel import Session
@@ -10,7 +11,7 @@ router = APIRouter(prefix="/chatbot", tags=["Chatbot"])
 
 class ChatRequest(BaseModel):
     message: str
-    session_id: str | None = None
+    session_id: Optional[str] = None
 
 class ChatResponse(BaseModel):
     response: str

@@ -203,7 +203,7 @@ I can help you with:
 What would you like to explore?"""
 
 
-def _get_local_response(message: str) -> str | None:
+def _get_local_response(message: str) -> Optional[str]:
     msg = message.lower()
     keywords = {
         'scope 1': 'scope 1', 'scope1': 'scope 1',
@@ -250,7 +250,7 @@ def _get_gemini_model():
         return None
 
 
-def chat_with_ecobot(message: str, session_id: str | None, user: Employee):
+def chat_with_ecobot(message: str, session_id: Optional[str], user: Employee):
     if not message or not message.strip():
         raise HTTPException(status_code=400, detail="Message is required")
 

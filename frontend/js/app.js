@@ -184,6 +184,17 @@ function renderAuthPage(pageKey) {
         submitBtn.textContent = isLogin ? 'Sign In' : 'Create Account';
       }
     });
+
+    if (isLogin) {
+      form.querySelectorAll('.login-demo-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const email = btn.getAttribute('data-email');
+          const password = btn.getAttribute('data-password');
+          form.querySelector('#login-email').value = email;
+          form.querySelector('#login-password').value = password;
+        });
+      });
+    }
   }
 
   window.lucide?.createIcons();
@@ -202,9 +213,27 @@ function loginFormHTML() {
         <input type="password" id="login-password" placeholder="Enter password" required />
       </div>
       <button type="submit" class="btn-auth">Sign In</button>
-      <p style="text-align:center;color:var(--text-muted);font-size:12px;margin-top:8px;">
-        Demo: admin@ecosphere.com / admin123
-      </p>
+      <div class="login-demo-section">
+        <div class="login-demo-title">Quick Demo Accounts</div>
+        <div class="login-demo-grid">
+          <button type="button" class="login-demo-btn" data-email="admin@ecosphere.com" data-password="admin123">
+            <div class="login-demo-btn-name">System Admin</div>
+            <div class="login-demo-btn-role">Full operations control</div>
+          </button>
+          <button type="button" class="login-demo-btn" data-email="aditi@ecosphere.com" data-password="aditi123">
+            <div class="login-demo-btn-name">ESG Manager</div>
+            <div class="login-demo-btn-role">Goal and CSR manager</div>
+          </button>
+          <button type="button" class="login-demo-btn" data-email="employee@ecosphere.com" data-password="employee123">
+            <div class="login-demo-btn-name">Employee</div>
+            <div class="login-demo-btn-role">Challenges &amp; CSR participation</div>
+          </button>
+          <button type="button" class="login-demo-btn" data-email="auditor@ecosphere.com" data-password="auditor123">
+            <div class="login-demo-btn-name">Auditor</div>
+            <div class="login-demo-btn-role">Audit/Compliance management</div>
+          </button>
+        </div>
+      </div>
     </form>
   `;
 }
@@ -244,6 +273,122 @@ function updateTopNavActiveState(mainModule) {
   }
 }
 
+let notificationPollInterval = null;
+
+function getNotificationIcon(type) {
+  const icons = {
+    'Challenge': 'trophy',
+    'CSR': 'heart',
+    'Compliance': 'shield-alert',
+    'Audit': 'check-square',
+    'Policy': 'file-text',
+    'Alert': 'bell',
+    'Badge': 'award'
+  };
+  return icons[type] || 'bell';
+}
+
+function renderNotificationDropdown(userId) {
+  const existing = document.getElementById('notification-dropdown-container');
+  if (existing) existing.remove();
+
+  const container = document.createElement('div');
+  container.id = 'notification-dropdown-container';
+  container.innerHTML = `
+    <div class="notif-bell-wrapper" id="notif-bell-wrapper">
+      <i data-lucide="bell" class="notif-bell-icon"></i>
+      <span id="notif-badge" class="notif-badge" style="display:none">0</span>
+    </div>
+    <div class="notif-dropdown" id="notif-dropdown" style="display:none">
+      <div class="notif-dropdown-header">
+        <span class="notif-dropdown-title">Notifications</span>
+        <button class="notif-mark-all-btn" id="notif-mark-all-btn">Mark all read</button>
+      </div>
+      <div class="notif-dropdown-body" id="notif-dropdown-body">
+        <div class="notif-empty">Loading notifications...</div>
+      </div>
+    </div>
+  `;
+
+  const header = document.querySelector('.app-top-nav-bar');
+  header.appendChild(container);
+
+  const bellWrapper = container.querySelector('#notif-bell-wrapper');
+  const dropdown = container.querySelector('#notif-dropdown');
+
+  bellWrapper.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const isOpen = dropdown.style.display !== 'none';
+    dropdown.style.display = isOpen ? 'none' : 'block';
+    if (!isOpen) fetchNotifications(userId);
+  });
+
+  document.addEventListener('click', (e) => {
+    if (!container.contains(e.target)) {
+      dropdown.style.display = 'none';
+    }
+  });
+
+  const markAllBtn = container.querySelector('#notif-mark-all-btn');
+  markAllBtn.addEventListener('click', () => {
+    markAllNotificationsRead(userId);
+  });
+
+  return container;
+}
+
+function fetchNotifications(userId) {
+  settingsApi.getNotifications(userId).then(notifs => {
+    const notifCount = notifs.filter(n => !n.is_read).length;
+    const badge = document.getElementById('notif-badge');
+    if (badge) {
+      if (notifCount > 0) {
+        badge.textContent = notifCount > 9 ? '9+' : notifCount;
+        badge.style.display = 'flex';
+      } else {
+        badge.style.display = 'none';
+      }
+    }
+    const body = document.getElementById('notif-dropdown-body');
+    if (!body) return;
+    if (notifs.length === 0) {
+      body.innerHTML = '<div class="notif-empty">No notifications yet.</div>';
+    } else {
+      body.innerHTML = notifs.slice(0, 20).map(n => `
+        <div class="notif-item ${n.is_read ? '' : 'notif-unread'}" data-id="${n.id}">
+          <div class="notif-item-icon">${getNotifIconHTML(getNotificationIcon(n.notification_type))}</div>
+          <div class="notif-item-content">
+            <div class="notif-item-title">${n.title}</div>
+            <div class="notif-item-msg">${n.message}</div>
+          </div>
+          ${!n.is_read ? `<button class="notif-mark-read" data-id="${n.id}">${getNotifIconHTML('check')}</button>` : ''}
+        </div>
+      `).join('');
+
+      body.querySelectorAll('.notif-mark-read').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const id = parseInt(btn.dataset.id);
+          settingsApi.markNotificationRead(userId, id).then(() => {
+            fetchNotifications(userId);
+          }).catch(() => {});
+        });
+      });
+    }
+    window.lucide?.createIcons();
+  }).catch(() => {});
+}
+
+function getNotifIconHTML(iconName) {
+  return `<i data-lucide="${iconName}" style="width:18px;height:18px;"></i>`;
+}
+
+function markAllNotificationsRead(userId) {
+  settingsApi.markAllNotificationsRead(userId).then(() => {
+    fetchNotifications(userId);
+  }).catch(() => {});
+}
+
 function updateUserNav() {
   const user = getStoredUser();
   const navBar = document.querySelector('.horizontal-nav');
@@ -259,10 +404,6 @@ function updateUserNav() {
   if (user) {
     const initial = user.name ? user.name.charAt(0).toUpperCase() : '?';
     userSection.innerHTML = `
-      <div class="nav-notifications" id="nav-notifications" style="position:relative;display:inline-flex;align-items:center;margin-right:12px;cursor:pointer;">
-        <i data-lucide="bell" style="width:18px;height:18px;color:var(--text-muted);"></i>
-        <span id="notif-badge" class="notif-badge" style="display:none;position:absolute;top:-6px;right:-6px;background:#EF4444;color:#fff;font-size:10px;font-weight:700;width:16px;height:16px;border-radius:50%;display:none;align-items:center;justify-content:center;"></span>
-      </div>
       <a href="#profile" class="nav-user-avatar" title="${user.name}">${initial}</a>
       <a href="#profile" class="nav-user-name">${user.name}</a>
       <button class="nav-logout-btn" id="logout-btn">Logout</button>
@@ -276,22 +417,21 @@ function updateUserNav() {
       });
     }
 
-    const notifIcon = userSection.querySelector('#nav-notifications');
-    if (notifIcon) {
-      notifIcon.addEventListener('click', () => window.location.hash = '#settings/notification-settings');
-    }
-
     if (user.id) {
-      settingsApi.getNotifications(user.id, true).then(notifs => {
-        const badge = document.getElementById('notif-badge');
-        if (badge && notifs.length > 0) {
-          badge.textContent = notifs.length > 9 ? '9+' : notifs.length;
-          badge.style.display = 'flex';
-        }
-      }).catch(() => {});
+      renderNotificationDropdown(user.id);
+      fetchNotifications(user.id);
+
+      if (notificationPollInterval) clearInterval(notificationPollInterval);
+      notificationPollInterval = setInterval(() => fetchNotifications(user.id), 60000);
     }
   } else {
     userSection.innerHTML = '';
+    const container = document.getElementById('notification-dropdown-container');
+    if (container) container.remove();
+    if (notificationPollInterval) {
+      clearInterval(notificationPollInterval);
+      notificationPollInterval = null;
+    }
   }
 }
 

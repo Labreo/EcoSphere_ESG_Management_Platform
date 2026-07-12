@@ -4,24 +4,34 @@ import tempfile
 from datetime import date
 from fastapi.testclient import TestClient
 from sqlmodel import SQLModel, Session, create_engine
-from app.database import get_session
-from app.main import app
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
+# Import all models to register in metadata
+from app.modules.auth.models import Department, Employee
+from app.modules.settings.models import Category, DepartmentScore, SystemConfiguration, Notification
+from app.modules.environmental.models import EmissionFactor, ProductESGProfile, EnvironmentalGoal, CarbonTransaction
+from app.modules.social.models import CSRActivity, EmployeeParticipation
+from app.modules.governance.models import ESGPolicy, PolicyAcknowledgement, Audit, ComplianceIssue
+from app.modules.gamification.models import Badge, Reward, Challenge, ChallengeParticipation, BadgeUnlock, RewardRedemption
+
+from app.database import get_session
+from app.main import app
+
 # Use a temporary file-based database for complete test isolation
 _db_fd, _db_path = tempfile.mkstemp(suffix=".db")
+os.close(_db_fd)
 test_engine = create_engine(f"sqlite:///{_db_path}", connect_args={"check_same_thread": False})
 
 def override_get_session():
     with Session(test_engine) as session:
         yield session
 
-app.dependency_overrides[get_session] = override_get_session
 client = TestClient(app)
 
-# Create all tables on the test engine
-SQLModel.metadata.create_all(test_engine)
+def setup_module():
+    SQLModel.metadata.create_all(test_engine)
+    app.dependency_overrides[get_session] = override_get_session
 
 
 def _create_factor(payload: dict) -> dict:
@@ -208,3 +218,12 @@ class TestDashboard:
         data = resp.json()
         assert data["total_emissions_kg"] == 150.0  # (0.5*100) + (0.5*200)
         assert len(data["items"]) == 1
+
+
+def teardown_module():
+    app.dependency_overrides.clear()
+    try:
+        os.close(_db_fd)
+        os.unlink(_db_path)
+    except Exception:
+        pass

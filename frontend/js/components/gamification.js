@@ -617,15 +617,53 @@ function renderRewards() {
 // 5. Leaderboard Sub-Module Panel (Expanded)
 // ----------------------------------------------------
 function renderLeaderboard() {
-  // Sort individuals
   const sortedIndividuals = Object.keys(employees).map(name => ({
     name,
-    xp: employees[name].xp,
-    dept: employees[name].department,
-    badgesCount: employees[name].badges.length
+    xp: employees[name].xp || 0,
+    dept: employees[name].department || 'Unknown',
+    badgesCount: (employees[name].badges && employees[name].badges.length) || 0
   })).sort((a, b) => b.xp - a.xp);
 
+  const user = getStoredUser();
+
+  const deptNames = [...new Set(sortedIndividuals.map(e => e.dept))].filter(d => d !== 'Unknown');
+
+  const getTrophyIcon = (rank) => {
+    if (rank === 1) return '<span class="trophy-gold"><i data-lucide="trophy"></i></span>';
+    if (rank === 2) return '<span class="trophy-silver"><i data-lucide="trophy"></i></span>';
+    if (rank === 3) return '<span class="trophy-bronze"><i data-lucide="trophy"></i></span>';
+    return '';
+  };
+
   const individualRows = sortedIndividuals.map((emp, index) => {
+    const isCurrentUser = user && emp.name === user.name;
+    return `
+      <tr class="${isCurrentUser ? 'current-user-row' : ''}">
+        <td class="leaderboard-rank-cell">
+          ${getTrophyIcon(index + 1)}
+          <span class="rank-num">#${index + 1}</span>
+        </td>
+        <td>
+          <div class="leaderboard-user-info">
+            <div class="leaderboard-avatar">${getInitials(emp.name)}</div>
+            <div>
+              <div class="leaderboard-name ${isCurrentUser ? 'text-emerald' : ''}">${emp.name}</div>
+              <div class="leaderboard-dept">${emp.dept}</div>
+            </div>
+          </div>
+        </td>
+        <td class="leaderboard-dept-cell">${emp.dept}</td>
+        <td class="leaderboard-center">
+          <span class="badge-count-badge">
+            <i data-lucide="award"></i> ${emp.badgesCount}
+          </span>
+        </td>
+        <td class="leaderboard-xp">${emp.xp.toLocaleString()} XP</td>
+      </tr>
+    `;
+  }).join('');
+
+  const departmentRows = sortedIndividuals.map((emp, index) => {
     const rankClass = index === 0 ? 'rank-1' : (index === 1 ? 'rank-2' : 'rank-3');
     return `
       <div class="list-item">
@@ -640,40 +678,35 @@ function renderLeaderboard() {
     `;
   }).join('');
 
-  // Department average hardcoded layout as per mockup
-  const departments = [
-    { name: 'Product Design & R&D', env: 86, soc: 82, gov: 94, score: 87.3 },
-    { name: 'Finance & Operations', env: 78, soc: 74, gov: 88, score: 80.0 },
-    { name: 'Logistics & Supply Chain', env: 64, soc: 72, gov: 91, score: 75.7 }
-  ];
-
-  const departmentRows = departments.map((dept, index) => {
-    const rankClass = index === 0 ? 'rank-1' : (index === 1 ? 'rank-2' : 'rank-3');
-    return `
-      <div class="list-item">
-        <div class="leaderboard-rank ${rankClass}">${index + 1}</div>
-        <div class="item-info">
-          <strong>${dept.name}</strong>
-          <span class="item-sub">Env: ${dept.env} | Soc: ${dept.soc} | Gov: ${dept.gov}</span>
-        </div>
-        <span class="points-badge badge-green">${dept.score} / 100</span>
-      </div>
-    `;
-  }).join('');
-
   return `
     <div class="grid-2">
-      <!-- Individual Leaderboard -->
-      <div class="view-card">
+      <!-- Individual Leaderboard (Enhanced) -->
+      <div class="view-card leaderboard-table-card">
         <div class="card-header">
           <h3>Individual Leaderboard</h3>
+          ${sortedIndividuals.length > 0 ? `<span class="card-header-count">${sortedIndividuals.length} participants</span>` : ''}
         </div>
-        <div class="list-container">
-          ${individualRows}
+        <div class="table-wrapper">
+          <table class="leaderboard-table">
+            <thead>
+              <tr>
+                <th>Rank</th>
+                <th>Employee</th>
+                <th>Department</th>
+                <th class="leaderboard-center">Badges</th>
+                <th class="leaderboard-right">Lifetime XP</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${sortedIndividuals.length === 0
+                ? '<tr><td colspan="5" class="leaderboard-empty">No participants yet.</td></tr>'
+                : individualRows}
+            </tbody>
+          </table>
         </div>
       </div>
 
-      <!-- Department Leaderboard -->
+      <!-- Department ESG Scores -->
       <div class="view-card">
         <div class="card-header">
           <h3>Department ESG Average Scores</h3>
