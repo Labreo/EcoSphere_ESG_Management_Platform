@@ -36,3 +36,10 @@ class Notification(SQLModel, table=True):
     notification_type: str = Field(default="system")  # compliance, badge, approval, system
     is_read: bool = Field(default=False)
     created_at: datetime = Field(default_factory=datetime.utcnow)
+
+class NotificationPreference(SQLModel, table=True):
+    id: Optional[int] = Field(default=None, primary_key=True)
+    employee_id: int = Field(foreign_key="employee.id", index=True)
+    event_type: str = Field(index=True)  # compliance_issue, approval_decision, policy_reminder, badge_unlock
+    in_app: bool = Field(default=True)
+    email: bool = Field(default=False)

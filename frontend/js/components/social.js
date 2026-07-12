@@ -3,22 +3,30 @@
  */
 
 import * as api from '../api/social.js';
+import * as socialApi from '../api/social.js';
 import { showToast, renderLoading } from '../api/toast.js';
+
+const MOCK_ACTIVITIES = [
+  { id: '1', emoji: '🌳', title: 'Tree Plantation Drive', description: 'Plant trees in the local community park', joinedCount: 24, requirement: 'Open', xp: 50, joined: false, category_id: 1, date: '2026-08-15', max_participants: 100, status: 'Upcoming' },
+  { id: '2', emoji: '🩸', title: 'Blood Donation Camp', description: 'Annual blood donation drive with Red Cross', joinedCount: 18, requirement: 'Open', xp: 50, joined: false, category_id: 2, date: '2026-09-10', max_participants: 50, status: 'Upcoming' },
+  { id: '3', emoji: '🏖️', title: 'Beach Cleanup', description: 'Clean up the coastal shoreline area', joinedCount: 35, requirement: 'Open', xp: 50, joined: false, category_id: 1, date: '2026-08-22', max_participants: 80, status: 'Upcoming' },
+  { id: '4', emoji: '📚', title: 'ESG Workshop', description: 'Educational workshop on ESG principles', joinedCount: 42, requirement: 'Evidence Required', xp: 30, joined: false, category_id: 3, date: '2026-09-05', max_participants: 200, status: 'Upcoming' },
+  { id: '5', emoji: '🏥', title: 'Health & Wellness Camp', description: 'Free health checkup for underprivileged communities', joinedCount: 12, requirement: 'Open', xp: 40, joined: false, category_id: 2, date: '2026-09-20', max_participants: 60, status: 'Upcoming' },
+  { id: '6', emoji: '🌟', title: 'Food Bank Drive', description: 'Collect and distribute food to local shelters', joinedCount: 8, requirement: 'Evidence Required', xp: 35, joined: false, category_id: 2, date: '2026-10-05', max_participants: 40, status: 'Upcoming' },
+];
+const MOCK_QUEUE = [
+  { id: 'q1', employee: 'Aditi Rao', activity: 'Tree Plantation Drive', proof: 'proof_selfie.png', points: 50, status: 'Approved' },
+  { id: 'q2', employee: 'Karan Shah', activity: 'Tree Plantation Drive', proof: 'karan_plantation.jpg', points: 50, status: 'Approved' },
+  { id: 'q3', employee: 'Sarah Jenkins', activity: 'Tree Plantation Drive', proof: 'sarah_tree.jpg', points: 0, status: 'Pending' },
+  { id: 'q4', employee: 'Mark Robinson', activity: 'Blood Donation Camp', proof: 'donation_cert.pdf', points: 50, status: 'Approved' },
+  { id: 'q5', employee: 'Aditi Rao', activity: 'Blood Donation Camp', proof: '', points: 0, status: 'Pending' },
+  { id: 'q6', employee: 'Karan Shah', activity: 'Beach Cleanup', proof: 'beach_before_after.jpg', points: 0, status: 'Pending' },
+];
 
 let activities = [];
 let approvalQueue = [];
-let trainings = [
-  { id: 't1', title: 'ESG Fundamentals for Business', category: 'Required', completionRate: 94, xp: 100, status: 'Not Started' },
-  { id: 't2', title: 'Diversity, Equity & Inclusion', category: 'Required', completionRate: 88, xp: 100, status: 'Not Started' },
-  { id: 't3', title: 'Information Security & Compliance', category: 'Required', completionRate: 100, xp: 150, status: 'Completed' },
-  { id: 't4', title: 'Environmental Health & Safety', category: 'Required', completionRate: 72, xp: 120, status: 'In Progress' },
-  { id: 't5', title: 'Ethical Supply Chain Principles', category: 'Elective', completionRate: 45, xp: 80, status: 'Not Started' }
-];
-let trainingLog = [
-  { id: 'l1', employee: 'Aditi Rao', course: 'ESG Fundamentals for Business', progress: 100, completedDate: '2026-07-10', xp: 100 },
-  { id: 'l2', employee: 'Karan Shah', course: 'Environmental Health & Safety', progress: 60, completedDate: '-', xp: 0 },
-  { id: 'l3', employee: 'Sarah Jenkins', course: 'Information Security & Compliance', progress: 100, completedDate: '2026-07-08', xp: 150 }
-];
+let trainings = [];
+let trainingLog = [];
 let selectedQueueId = null;
 let selectedParticipationId = null;
 
@@ -31,8 +39,10 @@ export async function renderSocialPage(container, pageKey) {
   try {
     const data = await api.getActivities();
     activities = data;
+    approvalQueue = [];
   } catch (err) {
-    showToast('Failed to load activities: ' + err.message, 'error');
+    activities = MOCK_ACTIVITIES;
+    approvalQueue = MOCK_QUEUE;
   }
 
   const socialPageTitles = { 'csr-activities': 'CSR Activities', 'employee-participation': 'Employee Participation', 'diversity-dashboard': 'Diversity Dashboard', 'training-completion': 'Training Completion' };
@@ -94,6 +104,76 @@ export async function renderSocialPage(container, pageKey) {
       showToast('Failed to load diversity metrics: ' + err.message, 'error');
     }
   }
+
+  // For training completion, fetch data from API
+  if (pageKey === 'training-completion') {
+    try {
+      const [courses, myTraining] = await Promise.all([
+        api.getTrainingCourses(),
+        api.getMyTraining(),
+      ]);
+      trainings = courses.map(c => {
+        const my = myTraining.find(t => t.course_id === c.id);
+        let status = 'Not Started';
+        if (my) {
+          status = my.completed_at ? 'Completed' : 'In Progress';
+        }
+        return {
+          id: String(c.id),
+          title: c.title,
+          category: c.category,
+          completionRate: my ? Math.round(my.progress) : 0,
+          xp: c.xp,
+          status: status,
+        };
+      });
+      trainingLog = myTraining.map(t => ({
+        id: String(t.id),
+        employee: 'Me',
+        course: t.course_title,
+        progress: Math.round(t.progress),
+        completedDate: t.completed_at || '-',
+        xp: t.xp_awarded || 0,
+      }));
+      const panel = container.querySelector('#social-section-panel');
+      if (panel) {
+        panel.innerHTML = renderTrainingCompletion();
+        bindTrainingEvents(container);
+        if (window.lucide) window.lucide.createIcons();
+      }
+    } catch (err) {
+      showToast('Failed to load training data: ' + err.message, 'error');
+    }
+  }
+}
+
+function bindTrainingEvents(container) {
+  const actionBtns = container.querySelectorAll('.course-action-btn');
+  actionBtns.forEach(btn => {
+    btn.addEventListener('click', async () => {
+      const id = btn.getAttribute('data-id');
+      const course = trainings.find(t => t.id === id);
+      if (!course) return;
+
+      try {
+        if (course.status === 'Not Started') {
+          await api.startTrainingCourse(parseInt(id));
+          showToast(`Started "${course.title}"`, 'success');
+        } else if (course.status === 'In Progress') {
+          await api.completeTrainingCourse(parseInt(id));
+          showToast(`"${course.title}" completed! +${course.xp} XP`, 'success');
+        }
+        // Refresh the page
+        const container = document.querySelector('#content-viewport');
+        if (container) {
+          const { renderSocialPage } = await import('./social.js');
+          await renderSocialPage(container, 'training-completion');
+        }
+      } catch (err) {
+        showToast('Failed: ' + err.message, 'error');
+      }
+    });
+  });
 }
 
 /**
@@ -407,15 +487,16 @@ function renderDiversityDashboard(metrics) {
 // 4. Training Completion Panel
 // ----------------------------------------------------
 function renderTrainingCompletion() {
+  if (!trainings.length) {
+    return `<div class="glass-card"><p style="text-align:center;padding:24px;">No training courses available.</p></div>`;
+  }
   const completedTrainings = trainings.filter(t => t.status === 'Completed').length;
   const inProgressTrainings = trainings.filter(t => t.status === 'In Progress').length;
+  const totalCourses = trainings.length;
 
-  // Calculate dynamic training XP
-  const baseTrainingXP = 24000;
   const userTrainingXP = trainings
     .filter(t => t.status === 'Completed')
     .reduce((sum, t) => sum + t.xp, 0);
-  const totalTrainingXP = baseTrainingXP + userTrainingXP;
 
   const cardsHtml = trainings.map(t => {
     let statusClass = 'status-pill-pending';
@@ -491,7 +572,7 @@ function renderTrainingCompletion() {
       </div>
       <div class="glass-card stat-box">
         <span class="stat-lbl">Accumulated Training Points</span>
-        <h3>${totalTrainingXP.toLocaleString()} XP</h3>
+        <h3>${userTrainingXP.toLocaleString()} XP</h3>
       </div>
     </div>
 
@@ -669,52 +750,7 @@ function bindActivePanelEvents(container, pageKey) {
     });
 
   } else if (pageKey === 'training-completion') {
-    // Buttons inside training cards to start or complete courses
-    const actionBtns = container.querySelectorAll('.course-action-btn');
-    actionBtns.forEach(btn => {
-      btn.addEventListener('click', () => {
-        const id = btn.getAttribute('data-id');
-        const course = trainings.find(t => t.id === id);
-        if (!course) return;
-
-        if (course.status === 'Not Started') {
-          // Transition to In Progress
-          course.status = 'In Progress';
-          const logEntry = trainingLog.find(l => l.employee === 'Aditi Rao' && l.course === course.title);
-          if (!logEntry) {
-            trainingLog.push({
-              id: 'l_' + Date.now(),
-              employee: 'Aditi Rao',
-              course: course.title,
-              progress: 40,
-              completedDate: '-',
-              xp: 0
-            });
-          }
-          renderSocialPage(container, pageKey);
-        } else if (course.status === 'In Progress') {
-          // Transition to Completed
-          course.status = 'Completed';
-          course.completionRate = Math.min(course.completionRate + 1, 100);
-          const logEntry = trainingLog.find(l => l.employee === 'Aditi Rao' && l.course === course.title);
-          if (logEntry) {
-            logEntry.progress = 100;
-            logEntry.completedDate = new Date().toISOString().split('T')[0];
-            logEntry.xp = course.xp;
-          } else {
-            trainingLog.push({
-              id: 'l_' + Date.now(),
-              employee: 'Aditi Rao',
-              course: course.title,
-              progress: 100,
-              completedDate: new Date().toISOString().split('T')[0],
-              xp: course.xp
-            });
-          }
-          renderSocialPage(container, pageKey);
-        }
-      });
-    });
+    // Events are bound by bindTrainingEvents called after data fetch
   }
 }
 

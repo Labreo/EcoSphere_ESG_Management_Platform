@@ -3,6 +3,8 @@ from sqlmodel import Session
 from typing import Optional
 
 from app.database import get_session
+from app.modules.auth.models import Employee
+from app.modules.auth.service import require_admin
 from app.modules.gamification.schemas import (
     ChallengeCreate, ChallengeUpdate, ChallengeStatusUpdate,
     ParticipateRequest, EvidenceSubmit, ApproveRequest,
@@ -81,10 +83,10 @@ def submit_challenge_evidence(
 @router.post("/challenges/participations/{participation_id}/approve")
 def approve_challenge_participation(
     participation_id: int,
-    data: ApproveRequest,
     session: Session = Depends(get_session),
+    admin: Employee = Depends(require_admin),
 ):
-    return service.approve_participation(session, participation_id, data.employee_id)
+    return service.approve_participation(session, participation_id, admin.id)
 
 
 # ── Badges ──────────────────────────────────────────────────────

@@ -4,7 +4,7 @@ from sqlmodel import Session, select, func
 from fastapi import HTTPException, status
 from app.modules.social.models import CSRActivity, EmployeeParticipation
 from app.modules.auth.models import Employee, Department
-from app.modules.settings.models import SystemConfiguration
+from app.modules.settings.models import SystemConfiguration, Notification, NotificationPreference
 
 
 def list_activities(
@@ -140,6 +140,23 @@ def approve_participation(session: Session, participation_id: int, approver_id: 
     session.add(participation)
     session.commit()
     session.refresh(participation)
+
+    pref = session.exec(
+        select(NotificationPreference).where(
+            NotificationPreference.employee_id == participation.employee_id,
+            NotificationPreference.event_type == "approval_decision",
+        )
+    ).first()
+    if pref is None or pref.in_app:
+        note = Notification(
+            employee_id=participation.employee_id,
+            title="CSR Activity Approved",
+            message=f"Your participation in '{activity.title}' has been approved! +{activity.points_reward} XP",
+            notification_type="approval",
+        )
+        session.add(note)
+        session.commit()
+
     return participation
 
 

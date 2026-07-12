@@ -1,4 +1,6 @@
-const API_BASE = 'http://127.0.0.1:8000/api/v1';
+// In production/deployment, you can override this by setting localStorage.setItem('API_BASE', 'https://your-backend.onrender.com/api/v1')
+const API_BASE = localStorage.getItem('API_BASE') || window.API_BASE || 'http://127.0.0.1:8000/api/v1';
+
 
 function getToken() {
   return localStorage.getItem('esg_token');

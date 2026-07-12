@@ -2,7 +2,7 @@ from sqlmodel import Session, select
 from datetime import date, datetime
 from typing import List, Optional
 
-from app.modules.settings.models import Notification
+from app.modules.settings.models import Notification, NotificationPreference
 from app.modules.governance.models import (
     ESGPolicy,
     PolicyAcknowledgement,
@@ -146,6 +146,23 @@ def create_issue(session: Session, data: ComplianceIssueCreate) -> ComplianceIss
     session.add(issue)
     session.commit()
     session.refresh(issue)
+
+    pref = session.exec(
+        select(NotificationPreference).where(
+            NotificationPreference.employee_id == issue.owner_id,
+            NotificationPreference.event_type == "compliance_issue",
+        )
+    ).first()
+    if pref is None or pref.in_app:
+        create_notification(
+            session,
+            employee_id=issue.owner_id,
+            title="New Compliance Issue",
+            message=f"Compliance issue '{issue.title}' (ID: {issue.id}) has been raised with {issue.severity} severity.",
+            notification_type="compliance",
+        )
+        session.refresh(issue)
+
     return issue
 
 

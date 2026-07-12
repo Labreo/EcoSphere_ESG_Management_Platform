@@ -1,9 +1,9 @@
 import os
 from sqlmodel import Session, select
-from app.modules.settings.models import SystemConfiguration, Category, Notification
+from app.modules.settings.models import SystemConfiguration, Category, Notification, NotificationPreference
 from app.modules.auth.models import Employee
 from pydantic import BaseModel, Field, field_validator, model_validator
-from typing import Optional, Literal
+from typing import Optional, Literal, List
 
 class ConfigUpdate(BaseModel):
     auto_emission_calculation: Optional[bool] = None
@@ -169,3 +169,55 @@ def mark_all_notifications_read(session: Session, employee_id: int) -> int:
         session.add(n)
     session.commit()
     return len(count)
+
+
+# Notification Preferences
+
+class NotificationPreferenceUpdate(BaseModel):
+    preferences: List[dict]  # [{"event_type": "...", "in_app": bool, "email": bool}]
+
+
+def get_notification_preferences(session: Session, employee_id: int) -> List[NotificationPreference]:
+    prefs = session.exec(
+        select(NotificationPreference).where(NotificationPreference.employee_id == employee_id)
+    ).all()
+    if not prefs:
+        defaults = [
+            NotificationPreference(employee_id=employee_id, event_type="compliance_issue", in_app=True, email=True),
+            NotificationPreference(employee_id=employee_id, event_type="approval_decision", in_app=True, email=False),
+            NotificationPreference(employee_id=employee_id, event_type="policy_reminder", in_app=False, email=True),
+            NotificationPreference(employee_id=employee_id, event_type="badge_unlock", in_app=True, email=False),
+        ]
+        session.add_all(defaults)
+        session.commit()
+        for d in defaults:
+            session.refresh(d)
+        return defaults
+    return prefs
+
+
+def save_notification_preferences(session: Session, employee_id: int, data: NotificationPreferenceUpdate) -> List[NotificationPreference]:
+    session.exec(
+        select(NotificationPreference).where(NotificationPreference.employee_id == employee_id)
+    ).all()
+    for pref_data in data.preferences:
+        existing = session.exec(
+            select(NotificationPreference).where(
+                NotificationPreference.employee_id == employee_id,
+                NotificationPreference.event_type == pref_data["event_type"],
+            )
+        ).first()
+        if existing:
+            existing.in_app = pref_data.get("in_app", existing.in_app)
+            existing.email = pref_data.get("email", existing.email)
+            session.add(existing)
+        else:
+            new_pref = NotificationPreference(
+                employee_id=employee_id,
+                event_type=pref_data["event_type"],
+                in_app=pref_data.get("in_app", True),
+                email=pref_data.get("email", False),
+            )
+            session.add(new_pref)
+    session.commit()
+    return get_notification_preferences(session, employee_id)

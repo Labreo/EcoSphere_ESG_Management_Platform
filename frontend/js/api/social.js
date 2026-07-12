@@ -100,3 +100,25 @@ export async function approveParticipation(participationId) {
 export async function getDiversityMetrics() {
   return get('/social/diversity-metrics');
 }
+
+// Training Completion API
+export async function getTrainingCourses(statusFilter) {
+  const params = statusFilter ? `?status_filter=${statusFilter}` : '';
+  return get(`/social/training/courses${params}`);
+}
+
+export async function startTrainingCourse(courseId) {
+  return post(`/social/training/courses/${courseId}/start`);
+}
+
+export async function completeTrainingCourse(courseId) {
+  return post(`/social/training/courses/${courseId}/complete`);
+}
+
+export async function getMyTraining() {
+  return get('/social/training/my-training');
+}
+
+export async function getTrainingStats() {
+  return get('/social/training/stats');
+}

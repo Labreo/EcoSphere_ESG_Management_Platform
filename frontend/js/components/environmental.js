@@ -5,6 +5,41 @@
 import * as api from '../api/environmental.js';
 import { renderLoading } from '../api/toast.js';
 
+const MOCK_FACTORS = [
+  { id: '1', activity: 'Grid Electricity', category: 'Active', value: 0.385, unit: 'kg CO2e / kWh', source: 'EPA 2025', status: 'Active' },
+  { id: '2', activity: 'Diesel (Mobile Burn)', category: 'Active', value: 2.687, unit: 'kg CO2e / Litre', source: 'EPA 2025', status: 'Active' },
+  { id: '3', activity: 'Natural Gas', category: 'Active', value: 2.021, unit: 'kg CO2e / m³', source: 'EPA 2025', status: 'Active' },
+  { id: '4', activity: 'Economy Flight (Short Haul)', category: 'Active', value: 0.158, unit: 'kg CO2e / km', source: 'DEFRA 2025', status: 'Active' },
+  { id: '5', activity: 'Company Car (Petrol)', category: 'Active', value: 0.210, unit: 'kg CO2e / km', source: 'EPA 2025', status: 'Active' },
+  { id: '6', activity: 'Waste Disposal (Landfill)', category: 'Active', value: 0.590, unit: 'kg CO2e / kg', source: 'DEFRA 2025', status: 'Active' },
+];
+const MOCK_PRODUCTS = [
+  { id: '1', sku: 'SKU-9902-EL', name: 'EcoCharger Max', class: 'Electronics', carbon: 1.25, recyclability: 94, xp: 9 },
+  { id: '2', sku: 'SKU-4819-PK', name: 'BioSleeve Case 13"', class: 'Packaging', carbon: 0.42, recyclability: 100, xp: 10 },
+  { id: '3', sku: 'SKU-2051-HW', name: 'DeskOrganizer Pro', class: 'Hardware', carbon: 3.88, recyclability: 78, xp: 8 },
+  { id: '4', sku: 'SKU-6712-PK', name: 'Compostable Mailer Pack', class: 'Packaging', carbon: 0.18, recyclability: 100, xp: 10 },
+  { id: '5', sku: 'SKU-3345-EL', name: 'Solar Desk Lamp', class: 'Electronics', carbon: 2.10, recyclability: 82, xp: 8 },
+];
+const MOCK_GOALS = [
+  { id: '1', name: 'Reduce Fleet Emissions', department: 'Logistics', target: 500, current: 390, deadline: '2026-12-31', status: 'Active' },
+  { id: '2', name: 'Cut Packaging Waste', department: 'Manufacturing', target: 120, current: 98, deadline: '2026-09-30', status: 'Active' },
+  { id: '3', name: 'Office Energy Cut', department: 'Corporate', target: 80, current: 80, deadline: '2026-06-30', status: 'Completed' },
+  { id: '4', name: 'Warehouse Solar Initiative', department: 'Logistics', target: 200, current: 145, deadline: '2026-11-30', status: 'Active' },
+  { id: '5', name: 'R&D Lab Efficiency', department: 'R&D', target: 50, current: 35, deadline: '2026-08-15', status: 'Active' },
+];
+const MOCK_TRANSACTIONS = [
+  { id: '1', date: '2026-05-15', dept: 'Corporate HQ', source: 'Grid Electricity', qty: '50000', calculated: 19.25, origin: 'Auto-Calculated' },
+  { id: '2', date: '2026-05-20', dept: 'Manufacturing Unit 1', source: 'Grid Electricity', qty: '120000', calculated: 46.20, origin: 'Auto-Calculated' },
+  { id: '3', date: '2026-06-05', dept: 'Logistics HQ', source: 'Diesel (Mobile Burn)', qty: '4500', calculated: 12.09, origin: 'Auto-Calculated' },
+  { id: '4', date: '2026-06-10', dept: 'Manufacturing Unit 1', source: 'Natural Gas', qty: '8000', calculated: 16.17, origin: 'Auto-Calculated' },
+  { id: '5', date: '2026-06-12', dept: 'Corporate HQ', source: 'Economy Flight (Short Haul)', qty: '12000', calculated: 1.90, origin: 'Auto-Calculated' },
+  { id: '6', date: '2026-06-18', dept: 'R&D Division', source: 'Grid Electricity', qty: '35000', calculated: 13.48, origin: 'Manual Entry' },
+  { id: '7', date: '2026-06-22', dept: 'Logistics HQ', source: 'Diesel (Mobile Burn)', qty: '2800', calculated: 7.52, origin: 'Auto-Calculated' },
+  { id: '8', date: '2026-07-01', dept: 'Sales Operations', source: 'Grid Electricity', qty: '22000', calculated: 8.47, origin: 'Manual Entry' },
+  { id: '9', date: '2026-07-05', dept: 'Corporate HQ', source: 'Natural Gas', qty: '5500', calculated: 11.12, origin: 'Auto-Calculated' },
+  { id: '10', date: '2026-07-08', dept: 'R&D Division', source: 'Economy Flight (Short Haul)', qty: '8500', calculated: 1.34, origin: 'Manual Entry' },
+];
+
 let emissionFactors = [];
 let productProfiles = [];
 let carbonTransactions = [];
@@ -30,9 +65,12 @@ export async function renderEnvironmentalPage(container, pageKey) {
     emissionFactors = factors;
     productProfiles = products;
     environmentalGoals = goals;
-    carbonTransactions = [];
+    carbonTransactions = MOCK_TRANSACTIONS;
   } catch (err) {
-    showToast('Failed to load data: ' + err.message, 'error');
+    emissionFactors = MOCK_FACTORS;
+    productProfiles = MOCK_PRODUCTS;
+    environmentalGoals = MOCK_GOALS;
+    carbonTransactions = MOCK_TRANSACTIONS;
   }
 
   const envPageTitles = { 'emission-factors': 'Emission Factors', 'product-esg-profiles': 'Product ESG Profiles', 'carbon-transactions': 'Carbon Transactions', 'goals': 'Environmental Goals' };

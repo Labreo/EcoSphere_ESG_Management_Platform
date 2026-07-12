@@ -31,9 +31,12 @@ class Settings(BaseSettings):
 
     CORS_ORIGINS: str = "*"
     DEBUG: bool = True
+    PORT: int = 8000
+    CLIENT_URL: str = "http://localhost:5500"
 
     class Config:
         case_sensitive = True
         env_file = ".env"
+        extra = "ignore"
 
 settings = Settings()

@@ -14,6 +14,7 @@ from app.modules.settings.router import router as settings_router
 from app.modules.settings.router import notifications_router
 from app.modules.environmental.router import router as environmental_router
 from app.modules.social.router import router as social_router
+from app.modules.social.training_router import router as training_router
 from app.modules.governance.router import router as governance_router
 from app.modules.gamification.router import router as gamification_router
 from app.modules.reports.router import router as reports_router
@@ -63,6 +64,7 @@ app.include_router(users_router, prefix=settings.API_V1_STR)
 app.include_router(settings_router, prefix=settings.API_V1_STR)
 app.include_router(environmental_router, prefix=settings.API_V1_STR)
 app.include_router(social_router, prefix=settings.API_V1_STR)
+app.include_router(training_router, prefix=settings.API_V1_STR)
 app.include_router(governance_router, prefix=settings.API_V1_STR)
 app.include_router(gamification_router, prefix=settings.API_V1_STR)
 app.include_router(reports_router, prefix=settings.API_V1_STR)

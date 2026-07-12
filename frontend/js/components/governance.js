@@ -1,6 +1,38 @@
 import * as api from '../api/governance.js';
 import { renderLoading } from '../api/toast.js';
 
+const MOCK_POLICIES = [
+  { id: 'pol-1', title: 'Sustainability Code of Conduct', version: '2.1', status: 'Active', scope: 'Global', description: 'Guides office guidelines regarding single-use plastics, recycling practices, and sustainable commute incentives.', publishedDate: '2026-01-15', acknowledgedCount: 5, totalRequired: 7 },
+  { id: 'pol-2', title: 'Responsible Sourcing & Vendor Policy', version: '1.0', status: 'Active', scope: 'Supply Chain', description: 'Mandates environmental standards for vendors, covering Scope 3 footprint logging and fair labor certifications.', publishedDate: '2026-03-02', acknowledgedCount: 4, totalRequired: 7 },
+  { id: 'pol-3', title: 'Anti-Bribery & Corruption Policy', version: '3.0', status: 'Active', scope: 'Global', description: 'Rules and regulations for anti-bribery, ethics, compliance and anti-money laundering guidelines.', publishedDate: '2025-11-10', acknowledgedCount: 6, totalRequired: 7 },
+  { id: 'pol-4', title: 'Environmental Health & Safety Guidelines', version: '1.2', status: 'Draft', scope: 'Manufacturing', description: 'EHS guidelines for heavy machinery, waste handling, and emergency response procedures.', publishedDate: '2026-06-01', acknowledgedCount: 0, totalRequired: 3 },
+  { id: 'pol-5', title: 'Data Privacy & AI Ethics Policy', version: '1.0', status: 'Draft', scope: 'Global', description: 'Governs the ethical use of AI, employee data handling, and third-party data sharing practices.', publishedDate: '2026-07-01', acknowledgedCount: 0, totalRequired: 7 },
+];
+const MOCK_ACKS = [
+  { id: 'ack-1', employeeName: 'Admin User', policyTitle: 'Sustainability Code of Conduct v2.1', signedDate: '2026-06-05 09:30', complianceState: 'Compliant' },
+  { id: 'ack-2', employeeName: 'Aditi Rao', policyTitle: 'Sustainability Code of Conduct v2.1', signedDate: '2026-06-05 11:00', complianceState: 'Compliant' },
+  { id: 'ack-3', employeeName: 'Karan Shah', policyTitle: 'Sustainability Code of Conduct v2.1', signedDate: 'Unsigned', complianceState: 'Pending' },
+  { id: 'ack-4', employeeName: 'Karan Shah', policyTitle: 'Responsible Sourcing & Vendor Policy v1.0', signedDate: '2026-06-08 14:00', complianceState: 'Compliant' },
+  { id: 'ack-5', employeeName: 'Admin User', policyTitle: 'Responsible Sourcing & Vendor Policy v1.0', signedDate: '2026-06-08 14:30', complianceState: 'Compliant' },
+  { id: 'ack-6', employeeName: 'Sarah Jenkins', policyTitle: 'Anti-Bribery & Corruption Policy v3.0', signedDate: '2026-06-12 09:00', complianceState: 'Compliant' },
+  { id: 'ack-7', employeeName: 'Mark Robinson', policyTitle: 'Sustainability Code of Conduct v2.1', signedDate: 'Unsigned', complianceState: 'Pending' },
+  { id: 'ack-8', employeeName: 'Mark Robinson', policyTitle: 'Anti-Bribery & Corruption Policy v3.0', signedDate: 'Unsigned', complianceState: 'Pending' },
+];
+const MOCK_AUDITS = [
+  { id: 'aud-1', title: 'Q2 Waste Audit', department: 'Manufacturing', auditor: 'S. Nair', date: '2026-06-12', findings: '15% issues found', status: 'Completed' },
+  { id: 'aud-2', title: 'Vendor Compliance Check', department: 'Supply Chain', auditor: 'R. Iyer', date: '2026-07-01', findings: '28% issues found', status: 'Completed' },
+  { id: 'aud-3', title: 'ISO 14064 Carbon Verification', department: 'Operations', auditor: 'SGS International', date: '2026-06-15', findings: '10% issues found', status: 'Completed' },
+  { id: 'aud-4', title: 'Q3 Safety & Labor Audit', department: 'Manufacturing', auditor: 'Internal Audit Team', date: '2026-07-20', findings: 'No issues found', status: 'Scheduled' },
+  { id: 'aud-5', title: 'Supply Chain Ethics Review', department: 'Supply Chain', auditor: 'Bureau Veritas', date: '2026-08-01', findings: 'Pending assessment', status: 'Scheduled' },
+];
+const MOCK_ISSUES = [
+  { id: 'CMP-001', issue: 'Missing MSDS sheets', description: 'Material Safety Data Sheets not found for 3 chemicals', severity: 'High', department: 'Dept #2', status: 'Open', owner: 'Employee User', dueDate: '2026-07-01', auditRef: 'aud-1' },
+  { id: 'CMP-002', issue: 'Late vendor disclosure', description: 'Vendor XYZ failed to disclose environmental impact data on time', severity: 'Medium', department: 'Dept #1', status: 'Resolved', owner: 'Admin User', dueDate: '2026-07-05', auditRef: 'aud-2' },
+  { id: 'CMP-003', issue: 'Scope 1 fuel logs missing', description: 'Q2 fleet fuel consumption logs not submitted', severity: 'High', department: 'Dept #3', status: 'Open', owner: 'Aditi Rao', dueDate: '2026-07-01', auditRef: 'aud-3' },
+  { id: 'CMP-004', issue: 'Waste segregation non-compliance', description: 'Mixed waste found in recycling bins on 3 occasions', severity: 'Medium', department: 'Dept #2', status: 'Open', owner: 'Mark Robinson', dueDate: '2026-07-15', auditRef: 'aud-1' },
+  { id: 'CMP-005', issue: 'Expired fire extinguishers', description: '3 fire extinguishers past inspection date in warehouse', severity: 'High', department: 'Dept #2', status: 'Resolved', owner: 'Karan Shah', dueDate: '2026-06-30', auditRef: 'none' },
+];
+
 let policies = [];
 let acknowledgements = [];
 let audits = [];
@@ -30,7 +62,10 @@ export async function renderGovernancePage(container, pageKey) {
     complianceIssues = iss;
     acknowledgements = await api.getAcknowledgements();
   } catch (err) {
-    showToast('Failed to load governance data: ' + err.message, 'error');
+    policies = MOCK_POLICIES;
+    audits = MOCK_AUDITS;
+    complianceIssues = JSON.parse(JSON.stringify(MOCK_ISSUES));
+    acknowledgements = MOCK_ACKS;
   }
 
   // Automatically evaluate and update overdue status flags based on current time

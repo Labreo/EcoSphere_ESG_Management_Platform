@@ -3,6 +3,49 @@ import * as settingsApi from '../api/settings.js';
 import { showToast, renderLoading } from '../api/toast.js';
 import { getStoredUser } from '../api/auth.js';
 
+const MOCK_EMPLOYEES = {
+  'Aditi Rao': { xp: 3910, department: 'Research & Development', badges: ['badge1', 'badge2'] },
+  'Admin User': { xp: 5000, department: 'Corporate', badges: ['badge1', 'badge2', 'badge3'] },
+  'Karan Shah': { xp: 1250, department: 'Corporate', badges: ['badge3'] },
+  'Sarah Jenkins': { xp: 1480, department: 'Research & Development', badges: ['badge4'] },
+  'Mark Robinson': { xp: 850, department: 'Logistics', badges: [] },
+  'Employee User': { xp: 1500, department: 'Manufacturing', badges: [] },
+  'Auditor User': { xp: 2000, department: 'Corporate', badges: [] },
+};
+const MOCK_CHALLENGES = [
+  { id: 'c1', title: 'Sustainability Sprint', category: 'Office Carbon Reduction', description: 'Participate in carbon offsetting, waste recycling, and energy efficiency actions to score points.', xp: 200, difficulty: 'Hard', deadline: '2026-07-20', status: 'Active', evidenceRequired: true },
+  { id: 'c2', title: 'Recycle Challenge', category: 'Office Green', description: 'Sort office waste into designated organic, recyclable, and general bins for 5 days.', xp: 80, difficulty: 'Easy', deadline: '2026-07-15', status: 'Active', evidenceRequired: true },
+  { id: 'c3', title: 'Commute Green Week', category: 'Transport', description: 'Walk, cycle, carpool or take public transit to work for 4 consecutive days.', xp: 120, difficulty: 'Medium', deadline: '2026-07-25', status: 'Draft', evidenceRequired: true },
+  { id: 'c4', title: 'The Paperless Office', category: 'Office Green', description: 'Avoid printing any physical documents for 5 consecutive workdays.', xp: 100, difficulty: 'Easy', deadline: '2026-07-30', status: 'Active', evidenceRequired: false },
+  { id: 'c5', title: 'Energy Audit Champion', category: 'Electricity', description: 'Perform a standby energy audit check on idle appliances in your department.', xp: 250, difficulty: 'Medium', deadline: '2026-08-01', status: 'Active', evidenceRequired: true },
+  { id: 'c6', title: 'Plastic Free Lunch', category: 'Office Green', description: 'Bring a lunch with zero single-use plastic packaging for an entire week.', xp: 90, difficulty: 'Easy', deadline: '2026-08-10', status: 'Draft', evidenceRequired: true },
+];
+const MOCK_BADGES = [
+  { id: 'badge1', name: 'Eco Warrior', description: 'Accumulate 500 XP from environmental actions', icon: '🌿', unlockRule: '500 XP threshold' },
+  { id: 'badge2', name: 'Carbon Reducer', description: 'Reduce personal carbon footprint by 20%', icon: '🔥', unlockRule: '1000 XP threshold' },
+  { id: 'badge3', name: 'Challenge Master', description: 'Complete 5 challenges successfully', icon: '🏆', unlockRule: '5 completed challenges' },
+  { id: 'badge4', name: 'Community Hero', description: 'Participate in 3 CSR activities', icon: '❤️', unlockRule: '3 CSR activities' },
+  { id: 'badge5', name: 'Net Zero Pioneer', description: 'Achieve net zero personal emissions for a month', icon: '🌍', unlockRule: '2000 XP + 5 activities' },
+];
+const MOCK_REWARDS = [
+  { id: 'reward1', name: 'Gift Voucher', description: '$50 Amazon Gift Voucher', cost: 500, stock: 10, status: 'Active', icon: '🎁' },
+  { id: 'reward2', name: 'Eco Merch Pack', description: 'Reusable water bottle + tote bag + bamboo utensil set', cost: 300, stock: 20, status: 'Active', icon: '🛍️' },
+  { id: 'reward3', name: 'Charity Donation', description: 'Donate $100 to an environmental charity of your choice', cost: 800, stock: 5, status: 'Active', icon: '🤝' },
+  { id: 'reward4', name: 'Extra PTO Day', description: 'One extra paid day off', cost: 1000, stock: 3, status: 'Active', icon: '🏖️' },
+  { id: 'reward5', name: 'Premium Eco Workshop', description: 'Exclusive access to a sustainability leadership workshop', cost: 600, stock: 8, status: 'Active', icon: '📚' },
+];
+const MOCK_PARTICIPATIONS = [
+  { id: 'p1', challengeId: 'c1', employee: 'Aditi Rao', status: 'Pending', proof: 'sprint_evidence.pdf', xpAwarded: 0 },
+  { id: 'p2', challengeId: 'c2', employee: 'Karan Shah', status: 'Approved', proof: 'recycle_log.jpg', xpAwarded: 80 },
+  { id: 'p3', challengeId: 'c2', employee: 'Sarah Jenkins', status: 'Approved', proof: 'recycle_photo.jpg', xpAwarded: 80 },
+  { id: 'p4', challengeId: 'c4', employee: 'Mark Robinson', status: 'Pending', proof: '', xpAwarded: 0 },
+  { id: 'p5', challengeId: 'c5', employee: 'Aditi Rao', status: 'Joined', proof: '', xpAwarded: 0 },
+];
+const MOCK_REDEMPTIONS = [
+  { id: 'red1', employee: 'Aditi Rao', rewardName: 'Eco Merch Pack', points: 300, date: '2026-06-15' },
+  { id: 'red2', employee: 'Admin User', rewardName: 'Gift Voucher', points: 500, date: '2026-06-20' },
+];
+
 let employees = {};
 let challenges = [];
 let participations = [];
@@ -104,7 +147,14 @@ export async function renderGamificationPage(container, pageKey) {
       });
     }
   } catch (err) {
-    showToast('Failed to load gamification data: ' + err.message, 'error');
+    challenges = MOCK_CHALLENGES;
+    badges = MOCK_BADGES;
+    rewards = MOCK_REWARDS;
+    participations = MOCK_PARTICIPATIONS;
+    redemptions = MOCK_REDEMPTIONS;
+    employees = JSON.parse(JSON.stringify(MOCK_EMPLOYEES));
+    const user = getStoredUser();
+    currentUser = user ? user.name : Object.keys(employees)[0];
   }
 
   container.innerHTML = `

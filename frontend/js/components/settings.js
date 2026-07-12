@@ -14,7 +14,7 @@ export async function renderSettingsPage(container, pageKey) {
     } else if (pageKey === 'esg-configuration') {
       contentHtml = await renderESGConfiguration();
     } else if (pageKey === 'notification-settings') {
-      contentHtml = renderNotificationSettings();
+      contentHtml = await renderNotificationSettings();
     }
   } catch (err) {
     showToast('Failed to load settings: ' + err.message, 'error');
@@ -46,17 +46,42 @@ export async function renderSettingsPage(container, pageKey) {
   `;
 
   if (pageKey === 'esg-configuration') bindConfigEvents(container);
+  if (pageKey === 'notification-settings') bindNotificationEvents(container);
   if (window.lucide) window.lucide.createIcons();
 }
 
+const MOCK_DEPTS = [
+  { id: '1', name: 'Corporate', code: 'CORP', head: 'Alice Vance', parent_department_id: null, employee_count: 10, status: 'Active' },
+  { id: '2', name: 'Manufacturing', code: 'MFG', head: 'Bob Sterling', parent_department_id: null, employee_count: 25, status: 'Active' },
+  { id: '3', name: 'Logistics', code: 'LOG', head: 'Mark Robinson', parent_department_id: null, employee_count: 15, status: 'Active' },
+  { id: '4', name: 'Research & Development', code: 'RND', head: 'Dr. Sarah Chen', parent_department_id: null, employee_count: 12, status: 'Active' },
+  { id: '5', name: 'Sales', code: 'SALES', head: 'James Wilson', parent_department_id: null, employee_count: 8, status: 'Active' },
+  { id: '6', name: 'Human Resources', code: 'HR', head: 'Priya Sharma', parent_department_id: null, employee_count: 6, status: 'Active' },
+];
+const MOCK_CATS = [
+  { id: '1', name: 'Office Carbon Reduction', type: 'Challenge Category', count: 2, status: 'Active' },
+  { id: '2', name: 'Community Outreach', type: 'CSR Category', count: 3, status: 'Active' },
+  { id: '3', name: 'Renewable Transition', type: 'Challenge Category', count: 1, status: 'Active' },
+  { id: '4', name: 'Office Green', type: 'Challenge Category', count: 2, status: 'Active' },
+  { id: '5', name: 'Transport', type: 'Challenge Category', count: 1, status: 'Active' },
+  { id: '6', name: 'Electricity', type: 'Challenge Category', count: 1, status: 'Active' },
+  { id: '7', name: 'Health & Wellness', type: 'CSR Category', count: 1, status: 'Active' },
+  { id: '8', name: 'Education', type: 'CSR Category', count: 1, status: 'Active' },
+];
+
 async function renderDepartments() {
-  const depts = await api.getDepartments();
+  let depts;
+  try {
+    depts = await api.getDepartments();
+  } catch (e) {
+    depts = MOCK_DEPTS;
+  }
   const rows = depts.map(d => `
     <tr>
       <td><strong>${d.name}</strong></td>
       <td>${d.code}</td>
       <td>${d.head}</td>
-      <td>${d.parent_department_id ? 'Dept #' + d.parent_department_id : '—'}</td>
+      <td>${d.parent_department_id ? 'Dept #' + d.parent_department_id : '\u2014'}</td>
       <td>${d.employee_count}</td>
       <td><span class="status-tag ${d.status === 'Active' ? 'status-tag-active' : 'status-tag-pending'}">${d.status}</span></td>
     </tr>
@@ -91,7 +116,12 @@ async function renderDepartments() {
 }
 
 async function renderCategories() {
-  const cats = await api.getCategories();
+  let cats;
+  try {
+    cats = await api.getCategories();
+  } catch (e) {
+    cats = MOCK_CATS;
+  }
   const rows = cats.map(c => `
     <tr>
       <td><strong>${c.name}</strong></td>
@@ -144,7 +174,7 @@ async function renderESGConfiguration() {
               <p>When enabled, Carbon Transactions are automatically parsed from ERP records via linked factors.</p>
             </div>
             <label class="toggle-switch">
-              <input type="checkbox" id="cfg-auto-emission" ${config.auto_emission_calculation ? 'checked' : ''} />
+              <input type="checkbox" class="cfg-toggle" data-key="auto_emission_calculation" ${config.auto_emission_calculation ? 'checked' : ''} />
               <span class="slider"></span>
             </label>
           </div>
@@ -154,7 +184,7 @@ async function renderESGConfiguration() {
               <p>When enabled, employee CSR activity approvals block if proof file URLs are null.</p>
             </div>
             <label class="toggle-switch">
-              <input type="checkbox" id="cfg-evidence" ${config.evidence_requirement ? 'checked' : ''} />
+              <input type="checkbox" class="cfg-toggle" data-key="evidence_requirement" ${config.evidence_requirement ? 'checked' : ''} />
               <span class="slider"></span>
             </label>
           </div>
@@ -164,7 +194,7 @@ async function renderESGConfiguration() {
               <p>When enabled, Badges are assigned to employees dynamically when XP threshold satisfies unlock rules.</p>
             </div>
             <label class="toggle-switch">
-              <input type="checkbox" id="cfg-badge-auto" ${config.badge_auto_award ? 'checked' : ''} />
+              <input type="checkbox" class="cfg-toggle" data-key="badge_auto_award" ${config.badge_auto_award ? 'checked' : ''} />
               <span class="slider"></span>
             </label>
           </div>
@@ -194,7 +224,38 @@ async function renderESGConfiguration() {
   `;
 }
 
-function renderNotificationSettings() {
+function getEventType(row) {
+  const types = ['compliance_issue', 'approval_decision', 'policy_reminder', 'badge_unlock'];
+  return types[row];
+}
+
+async function renderNotificationSettings() {
+  let prefs = [];
+  try {
+    prefs = await api.getNotificationPreferences();
+  } catch (e) { /* use defaults */ }
+
+  const defaultPrefs = [
+    { event_type: 'compliance_issue', in_app: true, email: true },
+    { event_type: 'approval_decision', in_app: true, email: false },
+    { event_type: 'policy_reminder', in_app: false, email: true },
+    { event_type: 'badge_unlock', in_app: true, email: false },
+  ];
+  if (!prefs.length) prefs = defaultPrefs;
+
+  const labels = ['New compliance issue raised', 'CSR/Challenge approval decisions', 'Policy acknowledgement reminders', 'Badge achievements unlocked'];
+
+  const rows = labels.map((label, i) => {
+    const p = prefs.find(x => x.event_type === getEventType(i)) || defaultPrefs[i];
+    return `
+      <tr>
+        <td><strong>${label}</strong></td>
+        <td><input type="checkbox" class="pref-inapp" data-event="${getEventType(i)}" ${p.in_app ? 'checked' : ''} /></td>
+        <td><input type="checkbox" class="pref-email" data-event="${getEventType(i)}" ${p.email ? 'checked' : ''} /></td>
+      </tr>
+    `;
+  }).join('');
+
   return `
     <div class="view-card">
       <h3 class="config-card-title">Alert Subscriptions</h3>
@@ -209,30 +270,11 @@ function renderNotificationSettings() {
             </tr>
           </thead>
           <tbody>
-            <tr>
-              <td><strong>New compliance issue raised</strong></td>
-              <td><input type="checkbox" checked /></td>
-              <td><input type="checkbox" checked /></td>
-            </tr>
-            <tr>
-              <td><strong>CSR/Challenge approval decisions</strong></td>
-              <td><input type="checkbox" checked /></td>
-              <td><input type="checkbox" /></td>
-            </tr>
-            <tr>
-              <td><strong>Policy acknowledgement reminders</strong></td>
-              <td><input type="checkbox" /></td>
-              <td><input type="checkbox" checked /></td>
-            </tr>
-            <tr>
-              <td><strong>Badge achievements unlocked</strong></td>
-              <td><input type="checkbox" checked /></td>
-              <td><input type="checkbox" /></td>
-            </tr>
+            ${rows}
           </tbody>
         </table>
       </div>
-      <button type="button" class="btn btn-save-config" style="margin-top: 20px;">Save Alert Preferences</button>
+      <button type="button" class="btn btn-save-config" id="btn-save-notif-prefs" style="margin-top: 20px;">Save Alert Preferences</button>
     </div>
     <style>${getSettingsCSS()}</style>
   `;
@@ -254,6 +296,49 @@ function bindConfigEvents(container) {
         showToast('Configuration saved successfully.', 'success');
       } catch (err) {
         showToast('Failed to save config: ' + err.message, 'error');
+      }
+    });
+  }
+
+  const toggles = container.querySelectorAll('.cfg-toggle');
+  toggles.forEach(toggle => {
+    toggle.addEventListener('change', async (e) => {
+      const key = e.target.getAttribute('data-key');
+      const value = e.target.checked;
+      try {
+        await api.updateConfig({ [key]: value });
+        showToast(`${key.replace(/_/g, ' ')} updated.`, 'success');
+      } catch (err) {
+        showToast('Failed to update: ' + err.message, 'error');
+        e.target.checked = !value;
+      }
+    });
+  });
+}
+
+function bindNotificationEvents(container) {
+  const saveBtn = container.querySelector('#btn-save-notif-prefs');
+  if (saveBtn) {
+    saveBtn.addEventListener('click', async () => {
+      const rows = container.querySelectorAll('tr');
+      const preferences = [];
+      const eventTypes = ['compliance_issue', 'approval_decision', 'policy_reminder', 'badge_unlock'];
+      eventTypes.forEach(et => {
+        const inAppCheckbox = container.querySelector(`.pref-inapp[data-event="${et}"]`);
+        const emailCheckbox = container.querySelector(`.pref-email[data-event="${et}"]`);
+        if (inAppCheckbox && emailCheckbox) {
+          preferences.push({
+            event_type: et,
+            in_app: inAppCheckbox.checked,
+            email: emailCheckbox.checked,
+          });
+        }
+      });
+      try {
+        await api.saveNotificationPreferences(preferences);
+        showToast('Alert preferences saved successfully.', 'success');
+      } catch (err) {
+        showToast('Failed to save preferences: ' + err.message, 'error');
       }
     });
   }

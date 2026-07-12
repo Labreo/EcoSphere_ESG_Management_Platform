@@ -12,7 +12,7 @@ from app.modules.gamification.schemas import (
     EvidenceSubmit,
 )
 from app.modules.auth.models import Employee
-from app.modules.settings.models import SystemConfiguration, DepartmentScore
+from app.modules.settings.models import SystemConfiguration, DepartmentScore, Notification, NotificationPreference
 
 
 VALID_STATUS_TRANSITIONS = {
@@ -128,15 +128,13 @@ def submit_evidence(session: Session, challenge_id: int, data: EvidenceSubmit) -
 
 
 def approve_participation(
-    session: Session, participation_id: int, employee_id: int
+    session: Session, participation_id: int, admin_id: int
 ) -> ChallengeParticipation:
     participation = session.get(ChallengeParticipation, participation_id)
     if not participation:
         raise HTTPException(status_code=404, detail="Participation not found")
     if participation.approval_status != "Pending":
         raise HTTPException(status_code=400, detail="Participation already reviewed")
-    if participation.employee_id != employee_id:
-        raise HTTPException(status_code=403, detail="Not authorized for this participation")
 
     challenge = get_challenge(session, participation.challenge_id)
 
@@ -145,7 +143,7 @@ def approve_participation(
     participation.status = "Completed"
     participation.progress = 100.0
 
-    employee = session.get(Employee, employee_id)
+    employee = session.get(Employee, participation.employee_id)
     if not employee:
         raise HTTPException(status_code=404, detail="Employee not found")
     employee.xp_points = (employee.xp_points or 0) + challenge.xp
@@ -155,7 +153,23 @@ def approve_participation(
     session.add(employee)
     session.commit()
 
-    _check_and_award_badges(session, employee_id)
+    _check_and_award_badges(session, participation.employee_id)
+
+    pref = session.exec(
+        select(NotificationPreference).where(
+            NotificationPreference.employee_id == participation.employee_id,
+            NotificationPreference.event_type == "approval_decision",
+        )
+    ).first()
+    if pref is None or pref.in_app:
+        note = Notification(
+            employee_id=participation.employee_id,
+            title="Challenge Approved",
+            message=f"Your submission for '{challenge.title}' has been approved! +{challenge.xp} XP",
+            notification_type="approval",
+        )
+        session.add(note)
+        session.commit()
 
     session.refresh(participation)
     return participation
@@ -215,6 +229,22 @@ def _check_and_award_badges(session: Session, employee_id: int):
         unlock = BadgeUnlock(employee_id=employee_id, badge_id=badge.id)
         session.add(unlock)
         session.commit()
+
+        pref = session.exec(
+            select(NotificationPreference).where(
+                NotificationPreference.employee_id == employee_id,
+                NotificationPreference.event_type == "badge_unlock",
+            )
+        ).first()
+        if pref is None or pref.in_app:
+            note = Notification(
+                employee_id=employee_id,
+                title="Badge Unlocked",
+                message=f"Congratulations! You unlocked the '{badge.name}' badge!",
+                notification_type="badge",
+            )
+            session.add(note)
+            session.commit()
 
 
 # ── Rewards ─────────────────────────────────────────────────────

@@ -4,8 +4,11 @@ from app.database import get_session
 from app.modules.settings.service import (
     get_config, update_config, ConfigUpdate,
     list_categories, create_category, CategoryCreate,
-    get_user_notifications, mark_notification_read, mark_all_notifications_read, create_notification
+    get_user_notifications, mark_notification_read, mark_all_notifications_read, create_notification,
+    get_notification_preferences, save_notification_preferences, NotificationPreferenceUpdate,
 )
+from app.modules.auth.models import Employee
+from app.modules.auth.service import get_current_user
 from typing import Optional
 
 router = APIRouter(prefix="/settings", tags=["Settings & Administration"])
@@ -58,3 +61,22 @@ def mark_as_read(notification_id: int, employee_id: int = Query(...), session: S
 def mark_all_read(employee_id: int = Query(...), session: Session = Depends(get_session)):
     count = mark_all_notifications_read(session, employee_id)
     return {"success": True, "marked_read": count}
+
+
+# -- Notification Preferences --
+
+@router.get("/notification-preferences")
+def get_preferences(
+    session: Session = Depends(get_session),
+    current_user: Employee = Depends(get_current_user),
+):
+    return get_notification_preferences(session, current_user.id)
+
+
+@router.put("/notification-preferences")
+def save_preferences(
+    data: NotificationPreferenceUpdate,
+    session: Session = Depends(get_session),
+    current_user: Employee = Depends(get_current_user),
+):
+    return save_notification_preferences(session, current_user.id, data)

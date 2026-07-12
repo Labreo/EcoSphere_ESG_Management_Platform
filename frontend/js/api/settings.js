@@ -100,3 +100,11 @@ export async function markNotificationRead(id, employeeId) {
 export async function markAllNotificationsRead(employeeId) {
   return patch(`/notifications/read-all?employee_id=${employeeId}`);
 }
+
+export async function getNotificationPreferences() {
+  return get('/settings/notification-preferences');
+}
+
+export async function saveNotificationPreferences(preferences) {
+  return put('/settings/notification-preferences', { preferences });
+}

@@ -10,8 +10,10 @@ def init_db():
     from app.modules.settings.models import Category, DepartmentScore, SystemConfiguration, Notification
     from app.modules.environmental.models import EmissionFactor, ProductESGProfile, EnvironmentalGoal, CarbonTransaction
     from app.modules.social.models import CSRActivity, EmployeeParticipation
+    from app.modules.social.training_models import TrainingCourse, EmployeeTraining
     from app.modules.governance.models import ESGPolicy, PolicyAcknowledgement, Audit, ComplianceIssue
     from app.modules.gamification.models import Badge, Reward, Challenge, ChallengeParticipation, BadgeUnlock, RewardRedemption
+    from app.modules.settings.models import NotificationPreference
 
     SQLModel.metadata.create_all(engine)
     seed_initial_data()
@@ -22,6 +24,7 @@ def seed_initial_data():
     from app.modules.settings.models import Category, DepartmentScore, SystemConfiguration
     from app.modules.environmental.models import EmissionFactor, ProductESGProfile, EnvironmentalGoal
     from app.modules.social.models import CSRActivity
+    from app.modules.social.training_models import TrainingCourse
     from app.modules.governance.models import ESGPolicy, Audit, ComplianceIssue
     from app.modules.gamification.models import Badge, Reward, Challenge
     from app.modules.auth.service import hash_password
@@ -153,6 +156,25 @@ def seed_initial_data():
         session.add_all(rewards)
         session.flush()
 
+        courses = [
+            TrainingCourse(title="ESG Fundamentals for Business", description="Core ESG principles and their application in modern business", category="Required", xp=100, status="Active"),
+            TrainingCourse(title="Diversity, Equity & Inclusion", description="Understanding DEI in the workplace", category="Required", xp=100, status="Active"),
+            TrainingCourse(title="Information Security & Compliance", description="Data protection, privacy and compliance standards", category="Required", xp=150, status="Active"),
+            TrainingCourse(title="Environmental Health & Safety", description="EHS guidelines and best practices", category="Required", xp=120, status="Active"),
+            TrainingCourse(title="Ethical Supply Chain Principles", description="Supply chain ethics, fair trade and responsible sourcing", category="Elective", xp=80, status="Active"),
+        ]
+        session.add_all(courses)
+        session.flush()
+
+        from app.modules.social.training_models import EmployeeTraining
+        employee_trainings = [
+            EmployeeTraining(employee_id=employees[0].id, course_id=courses[2].id, progress=100.0, completed_at=date(2026, 7, 8), xp_awarded=150),
+            EmployeeTraining(employee_id=employees[2].id, course_id=courses[3].id, progress=100.0, completed_at=date(2026, 7, 10), xp_awarded=120),
+            EmployeeTraining(employee_id=employees[3].id, course_id=courses[3].id, progress=60.0, xp_awarded=0),
+        ]
+        session.add_all(employee_trainings)
+        session.flush()
+
         challenges = [
             Challenge(title="Sustainability Sprint", category_id=categories[0].id, description="Participate in carbon offsetting, waste recycling, and energy efficiency actions to score points.", xp=200, difficulty="Hard", evidence_required=True, deadline=datetime(2026, 7, 20), status="Active"),
             Challenge(title="Recycle Challenge", category_id=categories[3].id, description="Sort office waste into designated organic, recyclable, and general bins for 5 days.", xp=80, difficulty="Easy", evidence_required=True, deadline=datetime(2026, 7, 15), status="Active"),
@@ -171,6 +193,87 @@ def seed_initial_data():
             DepartmentScore(department_id=depts[4].id, environmental_score=45, social_score=55, governance_score=60, total_score=53, calculation_date=date.today()),
         ]
         session.add_all(scores)
+        session.flush()
+
+        from app.modules.environmental.models import CarbonTransaction
+        from app.modules.social.models import EmployeeParticipation
+        from app.modules.governance.models import PolicyAcknowledgement
+        from app.modules.gamification.models import ChallengeParticipation, BadgeUnlock, RewardRedemption
+        from app.modules.settings.models import Notification
+
+        transactions = [
+            CarbonTransaction(source_type="Grid Electricity", source_id="ERP-ELEC-001", raw_value=50000, emission_factor_id=factors[0].id, calculated_emissions_kg=50000*0.385, transaction_date=date(2026, 5, 15), department_id=depts[0].id),
+            CarbonTransaction(source_type="Grid Electricity", source_id="ERP-ELEC-002", raw_value=120000, emission_factor_id=factors[0].id, calculated_emissions_kg=120000*0.385, transaction_date=date(2026, 5, 20), department_id=depts[1].id),
+            CarbonTransaction(source_type="Diesel (Mobile Burn)", source_id="FLEET-DSL-012", raw_value=4500, emission_factor_id=factors[1].id, calculated_emissions_kg=4500*2.687, transaction_date=date(2026, 6, 5), department_id=depts[2].id),
+            CarbonTransaction(source_type="Natural Gas", source_id="UTIL-NG-033", raw_value=8000, emission_factor_id=factors[2].id, calculated_emissions_kg=8000*2.021, transaction_date=date(2026, 6, 10), department_id=depts[1].id),
+            CarbonTransaction(source_type="Economy Flight (Short Haul)", source_id="TRAVEL-FLT-008", raw_value=12000, emission_factor_id=factors[3].id, calculated_emissions_kg=12000*0.158, transaction_date=date(2026, 6, 12), department_id=depts[0].id),
+            CarbonTransaction(source_type="Grid Electricity", source_id="ERP-ELEC-003", raw_value=35000, emission_factor_id=factors[0].id, calculated_emissions_kg=35000*0.385, transaction_date=date(2026, 6, 18), department_id=depts[3].id),
+            CarbonTransaction(source_type="Diesel (Mobile Burn)", source_id="FLEET-DSL-013", raw_value=2800, emission_factor_id=factors[1].id, calculated_emissions_kg=2800*2.687, transaction_date=date(2026, 6, 22), department_id=depts[2].id),
+            CarbonTransaction(source_type="Grid Electricity", source_id="ERP-ELEC-004", raw_value=22000, emission_factor_id=factors[0].id, calculated_emissions_kg=22000*0.385, transaction_date=date(2026, 7, 1), department_id=depts[4].id),
+            CarbonTransaction(source_type="Natural Gas", source_id="UTIL-NG-034", raw_value=5500, emission_factor_id=factors[2].id, calculated_emissions_kg=5500*2.021, transaction_date=date(2026, 7, 5), department_id=depts[0].id),
+            CarbonTransaction(source_type="Economy Flight (Short Haul)", source_id="TRAVEL-FLT-009", raw_value=8500, emission_factor_id=factors[3].id, calculated_emissions_kg=8500*0.158, transaction_date=date(2026, 7, 8), department_id=depts[3].id),
+        ]
+        session.add_all(transactions)
+        session.flush()
+
+        participations = [
+            EmployeeParticipation(employee_id=employees[2].id, activity_id=activities[0].id, proof_file_url="https://proofs.ecosphere.com/tree_plantation.jpg", approval_status="Approved", points_earned=50, completion_date=date(2026, 6, 10)),
+            EmployeeParticipation(employee_id=employees[3].id, activity_id=activities[0].id, proof_file_url="https://proofs.ecosphere.com/karan_tree.jpg", approval_status="Approved", points_earned=50, completion_date=date(2026, 6, 10)),
+            EmployeeParticipation(employee_id=employees[4].id, activity_id=activities[0].id, proof_file_url="https://proofs.ecosphere.com/sarah_tree.jpg", approval_status="Pending", points_earned=0, completion_date=None),
+            EmployeeParticipation(employee_id=employees[5].id, activity_id=activities[1].id, proof_file_url="https://proofs.ecosphere.com/mark_blood.jpg", approval_status="Approved", points_earned=50, completion_date=date(2026, 6, 20)),
+            EmployeeParticipation(employee_id=employees[2].id, activity_id=activities[1].id, proof_file_url=None, approval_status="Pending", points_earned=0, completion_date=None),
+        ]
+        session.add_all(participations)
+        session.flush()
+
+        policy_acks = [
+            PolicyAcknowledgement(employee_id=employees[0].id, policy_id=policies[0].id, acknowledged_at=datetime(2026, 6, 5, 9, 30, 0)),
+            PolicyAcknowledgement(employee_id=employees[1].id, policy_id=policies[0].id, acknowledged_at=datetime(2026, 6, 5, 10, 15, 0)),
+            PolicyAcknowledgement(employee_id=employees[2].id, policy_id=policies[0].id, acknowledged_at=datetime(2026, 6, 5, 11, 0, 0)),
+            PolicyAcknowledgement(employee_id=employees[3].id, policy_id=policies[1].id, acknowledged_at=datetime(2026, 6, 8, 14, 0, 0)),
+            PolicyAcknowledgement(employee_id=employees[0].id, policy_id=policies[1].id, acknowledged_at=datetime(2026, 6, 8, 14, 30, 0)),
+            PolicyAcknowledgement(employee_id=employees[4].id, policy_id=policies[2].id, acknowledged_at=datetime(2026, 6, 12, 9, 0, 0)),
+        ]
+        session.add_all(policy_acks)
+        session.flush()
+
+        challenge_parts = [
+            ChallengeParticipation(challenge_id=challenges[0].id, employee_id=employees[2].id, progress=80.0, proof_file_url="https://proofs.ecosphere.com/aditi_sprint.pdf", approval_status="Pending", xp_awarded=0, status="Completed"),
+            ChallengeParticipation(challenge_id=challenges[1].id, employee_id=employees[3].id, progress=100.0, proof_file_url="https://proofs.ecosphere.com/karan_recycle.jpg", approval_status="Approved", xp_awarded=80, status="Completed"),
+            ChallengeParticipation(challenge_id=challenges[1].id, employee_id=employees[4].id, progress=100.0, proof_file_url="https://proofs.ecosphere.com/sarah_recycle.jpg", approval_status="Approved", xp_awarded=80, status="Completed"),
+            ChallengeParticipation(challenge_id=challenges[3].id, employee_id=employees[5].id, progress=60.0, proof_file_url=None, approval_status="Pending", xp_awarded=0, status="Joined"),
+            ChallengeParticipation(challenge_id=challenges[4].id, employee_id=employees[2].id, progress=25.0, proof_file_url="https://proofs.ecosphere.com/aditi_audit.pdf", approval_status="Pending", xp_awarded=0, status="Joined"),
+        ]
+        session.add_all(challenge_parts)
+        session.flush()
+
+        badge_unlocks = [
+            BadgeUnlock(employee_id=employees[0].id, badge_id=badges[0].id, unlocked_at=datetime(2026, 5, 10, 10, 0, 0)),
+            BadgeUnlock(employee_id=employees[2].id, badge_id=badges[0].id, unlocked_at=datetime(2026, 5, 15, 14, 0, 0)),
+            BadgeUnlock(employee_id=employees[2].id, badge_id=badges[1].id, unlocked_at=datetime(2026, 6, 1, 9, 0, 0)),
+            BadgeUnlock(employee_id=employees[3].id, badge_id=badges[2].id, unlocked_at=datetime(2026, 6, 10, 11, 0, 0)),
+            BadgeUnlock(employee_id=employees[4].id, badge_id=badges[3].id, unlocked_at=datetime(2026, 6, 20, 16, 0, 0)),
+            BadgeUnlock(employee_id=employees[0].id, badge_id=badges[2].id, unlocked_at=datetime(2026, 6, 25, 8, 0, 0)),
+        ]
+        session.add_all(badge_unlocks)
+        session.flush()
+
+        reward_redemptions = [
+            RewardRedemption(employee_id=employees[2].id, reward_id=rewards[1].id, redeemed_at=datetime(2026, 6, 15, 10, 0, 0), status="Fulfilled"),
+            RewardRedemption(employee_id=employees[0].id, reward_id=rewards[0].id, redeemed_at=datetime(2026, 6, 20, 12, 0, 0), status="Fulfilled"),
+        ]
+        session.add_all(reward_redemptions)
+        session.flush()
+
+        notifications = [
+            Notification(employee_id=employees[0].id, title="New Compliance Issue", message="Compliance issue CMP-001 has been raised: Missing MSDS sheets", notification_type="compliance", created_at=datetime(2026, 6, 15, 9, 0, 0)),
+            Notification(employee_id=employees[2].id, title="Badge Unlocked", message="Congratulations! You unlocked the 'Eco Warrior' badge!", notification_type="badge", created_at=datetime(2026, 5, 15, 14, 0, 0)),
+            Notification(employee_id=employees[2].id, title="Challenge Approved", message="Your submission for 'Sustainability Sprint' has been approved! +200 XP", notification_type="approval", created_at=datetime(2026, 6, 20, 10, 0, 0)),
+            Notification(employee_id=employees[3].id, title="CSR Activity Approved", message="Your Tree Plantation Drive participation has been approved! +50 XP", notification_type="approval", created_at=datetime(2026, 6, 10, 11, 0, 0)),
+            Notification(employee_id=employees[5].id, title="Policy Acknowledgement Due", message="Please acknowledge the updated Sustainability Code of Conduct policy", notification_type="system", created_at=datetime(2026, 7, 1, 8, 0, 0)),
+            Notification(employee_id=employees[0].id, title="Weekly ESG Summary", message="Your department's ESG score improved by 3 points this week", notification_type="system", created_at=datetime(2026, 7, 10, 7, 0, 0)),
+        ]
+        session.add_all(notifications)
         session.commit()
 
 def get_session():
