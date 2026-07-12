@@ -130,6 +130,7 @@ html, body {
   letter-spacing: -0.5px;
   background: linear-gradient(135deg, #10B981, #3B82F6);
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
   transition: opacity var(--transition-fast);
   white-space: nowrap;

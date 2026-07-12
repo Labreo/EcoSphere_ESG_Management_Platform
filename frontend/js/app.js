@@ -25,6 +25,7 @@ const routes = {
   'social/csr-activities': (container) => renderSocialPage(container, 'csr-activities'),
   'social/employee-participation': (container) => renderSocialPage(container, 'employee-participation'),
   'social/diversity-dashboard': (container) => renderSocialPage(container, 'diversity-dashboard'),
+  'social/training-completion': (container) => renderSocialPage(container, 'training-completion'),
 
   // Governance Pages
   'governance/policies': (container) => renderGovernancePage(container, 'policies'),
