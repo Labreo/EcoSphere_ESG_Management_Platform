@@ -17,9 +17,11 @@ export function renderSettingsPage(container, pageKey) {
 
   container.innerHTML = `
     <div class="view-container">
-      <div class="view-header">
-        <h1 class="view-title">${getSettingsTitle(pageKey)}</h1>
-        <p class="view-description">${getSettingsDesc(pageKey)}</p>
+      <div class="sub-nav-tabs settings">
+        <a href="#settings/departments" class="sub-nav-tab ${pageKey === 'departments' ? 'active' : ''}">Departments</a>
+        <a href="#settings/categories" class="sub-nav-tab ${pageKey === 'categories' ? 'active' : ''}">Categories</a>
+        <a href="#settings/esg-configuration" class="sub-nav-tab ${pageKey === 'esg-configuration' ? 'active' : ''}">ESG Configuration</a>
+        <a href="#settings/notification-settings" class="sub-nav-tab ${pageKey === 'notification-settings' ? 'active' : ''}">Notifications</a>
       </div>
       ${contentHtml}
     </div>

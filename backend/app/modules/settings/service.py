@@ -1,20 +1,29 @@
 from sqlmodel import Session, select
 from app.modules.settings.models import SystemConfiguration, Category, Notification
-from pydantic import BaseModel
-from typing import Optional
+from pydantic import BaseModel, Field, field_validator, model_validator
+from typing import Optional, Literal
 
 class ConfigUpdate(BaseModel):
     auto_emission_calculation: Optional[bool] = None
     evidence_requirement: Optional[bool] = None
     badge_auto_award: Optional[bool] = None
-    environmental_weight: Optional[float] = None
-    social_weight: Optional[float] = None
-    governance_weight: Optional[float] = None
+    environmental_weight: Optional[float] = Field(default=None, ge=0.0, le=1.0)
+    social_weight: Optional[float] = Field(default=None, ge=0.0, le=1.0)
+    governance_weight: Optional[float] = Field(default=None, ge=0.0, le=1.0)
+
+    @model_validator(mode="after")
+    def validate_weights(self):
+        weights = [self.environmental_weight, self.social_weight, self.governance_weight]
+        if all(w is not None for w in weights):
+            total = sum(weights)
+            if abs(total - 1.0) > 0.01:
+                raise ValueError(f"Weights must sum to 1.0, got {total}")
+        return self
 
 class CategoryCreate(BaseModel):
-    name: str
-    type: str  # "CSR Activity" or "Challenge"
-    status: str = "Active"
+    name: str = Field(min_length=1, max_length=100)
+    type: Literal["CSR Activity", "Challenge"]
+    status: Literal["Active", "Inactive"] = "Active"
 
 
 def get_config(session: Session) -> SystemConfiguration:

@@ -1,7 +1,7 @@
-from typing import Optional
+from typing import Optional, Literal
 from datetime import date
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, field_validator
 from sqlmodel import Session
 from app.database import get_session
 from app.modules.auth.models import Employee
@@ -23,23 +23,23 @@ router = APIRouter(prefix="/social", tags=["Social Module"])
 
 
 class CSRActivityCreate(BaseModel):
-    title: str
-    description: str
-    category_id: int
+    title: str = Field(min_length=1, max_length=200)
+    description: str = Field(min_length=1, max_length=2000)
+    category_id: int = Field(gt=0)
     date: date
-    points_reward: int = 100
-    max_participants: int = 50
-    status: str = "Upcoming"
+    points_reward: int = Field(default=100, ge=0, le=10000)
+    max_participants: int = Field(default=50, ge=1, le=10000)
+    status: Literal["Upcoming", "Active", "Completed", "Cancelled"] = "Upcoming"
 
 
 class CSRActivityUpdate(BaseModel):
-    title: Optional[str] = None
-    description: Optional[str] = None
-    category_id: Optional[int] = None
+    title: Optional[str] = Field(default=None, min_length=1, max_length=200)
+    description: Optional[str] = Field(default=None, min_length=1, max_length=2000)
+    category_id: Optional[int] = Field(default=None, gt=0)
     date: Optional[date] = None
-    points_reward: Optional[int] = None
-    max_participants: Optional[int] = None
-    status: Optional[str] = None
+    points_reward: Optional[int] = Field(default=None, ge=0, le=10000)
+    max_participants: Optional[int] = Field(default=None, ge=1, le=10000)
+    status: Optional[Literal["Upcoming", "Active", "Completed", "Cancelled"]] = None
 
 
 class CSRActivityResponse(BaseModel):
@@ -68,7 +68,14 @@ class EmployeeParticipationResponse(BaseModel):
 
 
 class SubmitProofRequest(BaseModel):
-    proof_file_url: str
+    proof_file_url: str = Field(min_length=1)
+
+    @field_validator("proof_file_url")
+    @classmethod
+    def validate_url(cls, v: str) -> str:
+        if not v.startswith(("http://", "https://")):
+            raise ValueError("proof_file_url must be a valid HTTP/HTTPS URL")
+        return v
 
 
 # --- Endpoints ---

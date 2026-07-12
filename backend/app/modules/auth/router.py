@@ -1,7 +1,7 @@
-from typing import Optional
+from typing import Optional, Literal
 from fastapi import APIRouter, Depends, HTTPException, status
-from pydantic import BaseModel, EmailStr
-from sqlmodel import Session
+from pydantic import BaseModel, EmailStr, Field
+from sqlmodel import Session, select
 from app.database import get_session
 from app.modules.auth.models import Employee, Department
 from app.modules.auth.service import (
@@ -23,11 +23,11 @@ dept_router = APIRouter(prefix="/departments", tags=["Departments"])
 # --- Schemas ---
 
 class EmployeeCreate(BaseModel):
-    name: str
-    email: str
-    password: str
-    role: str = "Employee"
-    department_id: Optional[int] = None
+    name: str = Field(min_length=1, max_length=100)
+    email: EmailStr
+    password: str = Field(min_length=8, max_length=128)
+    role: Literal["Admin", "Manager", "Employee"] = "Employee"
+    department_id: Optional[int] = Field(default=None, gt=0)
 
 class EmployeeResponse(BaseModel):
     id: int
@@ -41,28 +41,28 @@ class EmployeeResponse(BaseModel):
     model_config = {"from_attributes": True}
 
 class LoginRequest(BaseModel):
-    email: str
-    password: str
+    email: EmailStr
+    password: str = Field(min_length=1)
 
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
 
 class DepartmentCreate(BaseModel):
-    name: str
-    code: str
-    head: Optional[str] = None
-    parent_department_id: Optional[int] = None
-    employee_count: int = 0
-    status: str = "Active"
+    name: str = Field(min_length=1, max_length=100)
+    code: str = Field(min_length=1, max_length=20)
+    head: Optional[str] = Field(default=None, max_length=100)
+    parent_department_id: Optional[int] = Field(default=None, gt=0)
+    employee_count: int = Field(default=0, ge=0)
+    status: Literal["Active", "Inactive"] = "Active"
 
 class DepartmentUpdate(BaseModel):
-    name: Optional[str] = None
-    code: Optional[str] = None
-    head: Optional[str] = None
-    parent_department_id: Optional[int] = None
-    employee_count: Optional[int] = None
-    status: Optional[str] = None
+    name: Optional[str] = Field(default=None, min_length=1, max_length=100)
+    code: Optional[str] = Field(default=None, min_length=1, max_length=20)
+    head: Optional[str] = Field(default=None, max_length=100)
+    parent_department_id: Optional[int] = Field(default=None, gt=0)
+    employee_count: Optional[int] = Field(default=None, ge=0)
+    status: Optional[Literal["Active", "Inactive"]] = None
 
 class DepartmentResponse(BaseModel):
     id: int
@@ -109,8 +109,6 @@ def get_me(current_user: Employee = Depends(get_current_user)):
     return current_user
 
 # --- Department Endpoints ---
-
-from sqlmodel import select
 
 @dept_router.get("/", response_model=list[DepartmentResponse])
 def list_departments(session: Session = Depends(get_session)):

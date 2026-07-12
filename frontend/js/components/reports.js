@@ -417,8 +417,8 @@ export function renderReportsPage(container, pageKey) {
   }
 
   const subNavHtml = `
-    <div class="sub-nav-tabs">
-      <a href="#reports/environmental-report" class="sub-nav-tab ${pageKey === 'environmental-report' ? 'active' : ''}">
+      <div class="sub-nav-tabs reports">
+        <a href="#reports/environmental-report" class="sub-nav-tab ${pageKey === 'environmental-report' ? 'active' : ''}">
         Environmental
       </a>
       <a href="#reports/social-report" class="sub-nav-tab ${pageKey === 'social-report' ? 'active' : ''}">
@@ -1230,43 +1230,6 @@ function showToast(message) {
  */
 function getReportsCSS() {
   return `
-    /* Connected Rectangular Sub-navigation Tabs Row */
-    .sub-nav-tabs {
-      display: flex;
-      gap: 0;
-      margin-top: 10px;
-      margin-bottom: 24px;
-      border-bottom: 1px solid var(--border-color);
-      width: 100%;
-    }
-    .sub-nav-tab {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      padding: 12px 24px;
-      background: var(--bg-card);
-      color: var(--text-secondary);
-      font-family: var(--font-heading);
-      font-weight: 600;
-      font-size: 13.5px;
-      text-decoration: none;
-      cursor: pointer;
-      border: 1px solid var(--border-color);
-      margin-right: -1px;
-      border-radius: 0;
-      transition: all var(--transition-fast);
-    }
-    .sub-nav-tab:hover {
-      background: rgba(255, 255, 255, 0.03);
-      color: var(--text-primary);
-    }
-    .sub-nav-tab.active {
-      background-color: var(--accent-primary) !important;
-      color: #080B11 !important;
-      border-color: var(--accent-primary) !important;
-      border-radius: var(--radius-md) !important;
-    }
-
     /* Filter Card System */
     .filter-card-container {
       margin-bottom: 24px;

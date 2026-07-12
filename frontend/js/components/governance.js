@@ -84,17 +84,17 @@ export function renderGovernancePage(container, pageKey) {
     <div class="view-container" style="padding-top: 0;">
       
       <!-- Sub Navigation connected tabs row -->
-      <div class="sub-nav-tabs gov-sub-nav">
-        <a href="#governance/policies" class="sub-nav-tab gov-tab ${pageKey === 'policies' ? 'active' : ''}">
+      <div class="sub-nav-tabs gov">
+        <a href="#governance/policies" class="sub-nav-tab ${pageKey === 'policies' ? 'active' : ''}">
           Policies
         </a>
-        <a href="#governance/policy-acknowledgements" class="sub-nav-tab gov-tab ${pageKey === 'policy-acknowledgements' ? 'active' : ''}">
+        <a href="#governance/policy-acknowledgements" class="sub-nav-tab ${pageKey === 'policy-acknowledgements' ? 'active' : ''}">
           Policy Acknowledgements
         </a>
-        <a href="#governance/audits" class="sub-nav-tab gov-tab ${pageKey === 'audits' ? 'active' : ''}">
+        <a href="#governance/audits" class="sub-nav-tab ${pageKey === 'audits' ? 'active' : ''}">
           Audits
         </a>
-        <a href="#governance/compliance-issues" class="sub-nav-tab gov-tab ${pageKey === 'compliance-issues' ? 'active' : ''}">
+        <a href="#governance/compliance-issues" class="sub-nav-tab ${pageKey === 'compliance-issues' ? 'active' : ''}">
           Compliance Issues
         </a>
       </div>
@@ -1280,45 +1280,6 @@ function showToast(message, type = 'success') {
 // ---------------------------------------------------------------------
 function getGovernanceCSS() {
   return `
-    /* Connected Rounded Pills Subnavigation */
-    .gov-sub-nav {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-      margin-top: 10px;
-      margin-bottom: 24px;
-      border-bottom: 1px solid var(--border-color);
-      padding-bottom: 14px;
-      width: 100%;
-    }
-    .gov-tab {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      padding: 9px 18px;
-      background: var(--bg-card);
-      color: var(--text-secondary);
-      font-family: var(--font-heading);
-      font-weight: 500;
-      font-size: 13.5px;
-      text-decoration: none;
-      cursor: pointer;
-      border: 1px solid var(--border-color) !important;
-      border-radius: var(--radius-full) !important;
-      transition: all var(--transition-fast);
-      margin-right: 0px !important;
-    }
-    .gov-tab:hover {
-      background: rgba(255, 255, 255, 0.02);
-      border-color: var(--border-hover) !important;
-      color: var(--text-primary);
-    }
-    .gov-tab.active {
-      background-color: var(--accent-warning) !important;
-      color: #ffffff !important;
-      border-color: var(--accent-warning) !important;
-    }
-
     /* Actions bar & filtering */
     .table-actions {
       display: flex;

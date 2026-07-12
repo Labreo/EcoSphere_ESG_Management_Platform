@@ -235,7 +235,7 @@ export function renderGamificationPage(container, pageKey) {
       </div>
 
       <!-- Sub Navigation connected tabs -->
-      <div class="sub-nav-tabs">
+      <div class="sub-nav-tabs gamification">
         <a href="#gamification/challenges" class="sub-nav-tab ${pageKey === 'challenges' ? 'active' : ''}">Challenges</a>
         <a href="#gamification/challenge-participation" class="sub-nav-tab ${pageKey === 'challenge-participation' ? 'active' : ''}">Challenge Participation</a>
         <a href="#gamification/badges" class="sub-nav-tab ${pageKey === 'badges' ? 'active' : ''}">Badges</a>
@@ -1319,45 +1319,6 @@ function getGamificationCSS() {
     
     .gamify-select:focus {
       border-color: var(--accent-gamification);
-    }
-
-    /* Connected Sub Nav Tabs */
-    .sub-nav-tabs {
-      display: flex;
-      gap: 2px;
-      background-color: rgba(0,0,0,0.2);
-      padding: 4px;
-      border-radius: var(--radius-md);
-      margin-bottom: 24px;
-      border: 1px solid var(--border-color);
-      width: 100%;
-      overflow-x: auto;
-    }
-    
-    .sub-nav-tab {
-      flex: 1;
-      text-align: center;
-      padding: 10px 16px;
-      text-decoration: none;
-      color: var(--text-secondary);
-      font-family: var(--font-heading);
-      font-weight: 600;
-      font-size: 13.5px;
-      border-radius: var(--radius-sm);
-      transition: all var(--transition-fast);
-      white-space: nowrap;
-      min-width: 110px;
-    }
-    
-    .sub-nav-tab:hover {
-      color: var(--text-primary);
-      background-color: rgba(255,255,255,0.03);
-    }
-    
-    .sub-nav-tab.active {
-      background-color: var(--accent-gamification);
-      color: var(--bg-primary);
-      box-shadow: 0 2px 8px rgba(245, 158, 11, 0.25);
     }
 
     /* Actions and Table */

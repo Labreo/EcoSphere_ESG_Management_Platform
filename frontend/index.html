@@ -25,7 +25,7 @@
         <div class="logo-icon">🌱</div>
         <span class="logo-text">EcoSphere</span>
       </div>
-      <nav class="horizontal-nav">
+      <nav class="horizontal-nav" id="horizontal-nav">
         <a href="#dashboard" class="nav-link-horizontal" id="link-dashboard">Dashboard</a>
         <a href="#environmental/goals" class="nav-link-horizontal" id="link-environmental">Environmental</a>
         <a href="#social/csr-activities" class="nav-link-horizontal" id="link-social">Social</a>
@@ -34,7 +34,12 @@
         <a href="#reports/environmental-report" class="nav-link-horizontal" id="link-reports">Reports</a>
         <a href="#settings/departments" class="nav-link-horizontal" id="link-settings">Settings</a>
       </nav>
+      <button class="mobile-nav-toggle" id="mobile-nav-toggle" aria-label="Toggle navigation menu">
+        <i data-lucide="menu"></i>
+      </button>
     </header>
+    <!-- Mobile nav backdrop overlay -->
+    <div class="nav-overlay" id="nav-overlay"></div>
 
     <!-- Main Content Area -->
     <main class="app-main-content-horizontal">

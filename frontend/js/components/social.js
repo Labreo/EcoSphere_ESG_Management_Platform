@@ -41,7 +41,7 @@ export function renderSocialPage(container, pageKey) {
     <div class="view-container" style="padding-top: 0;">
       
       <!-- Sub Navigation Connected Rectangular Tabs Row -->
-      <div class="sub-nav-tabs">
+      <div class="sub-nav-tabs social">
         <a href="#social/csr-activities" class="sub-nav-tab ${pageKey === 'csr-activities' ? 'active' : ''}">
           CSR Activities
         </a>
@@ -866,45 +866,6 @@ function getSocialCSS() {
       align-items: center;
       justify-content: flex-start;
       margin-bottom: 20px;
-    }
-    
-    /* Sub-navigation Connected Tabs Row */
-    .sub-nav-tabs {
-      display: flex;
-      gap: 0;
-      margin-top: 10px;
-      margin-bottom: 24px;
-      border-bottom: 1px solid var(--border-color);
-      width: 100%;
-    }
-    .sub-nav-tab {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      padding: 12px 24px;
-      background: var(--bg-card);
-      color: var(--text-secondary);
-      font-family: var(--font-heading);
-      font-weight: 600;
-      font-size: 13.5px;
-      text-decoration: none;
-      cursor: pointer;
-      border: 1px solid var(--border-color);
-      margin-right: -1px; /* connected visual border overlap */
-      border-radius: 0; /* rectangular */
-      transition: all var(--transition-fast);
-    }
-    .sub-nav-tab:hover {
-      background: rgba(255, 255, 255, 0.03);
-      color: var(--text-primary);
-    }
-    .sub-nav-tab.active {
-      background-color: var(--accent-info) !important;
-      color: #ffffff !important;
-      border-color: var(--accent-info) !important;
-      border-radius: var(--radius-md) !important;
-      box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-      z-index: 2;
     }
     
     /* Grid layouts */
