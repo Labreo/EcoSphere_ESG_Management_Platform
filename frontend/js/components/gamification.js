@@ -1,31 +1,258 @@
 /**
- * EcoSphere Gamification Module View Component
+ * EcoSphere Gamification Module View Component - Unified, Interactive & Top-Nav Layout
  */
 
-export function renderGamificationPage(container, pageKey) {
-  let contentHtml = '';
+// Storage Keys
+const STORAGE_KEY = 'esg_gamification_state';
+const CATEGORIES_KEY = 'esg_categories';
 
-  if (pageKey === 'challenges') {
-    contentHtml = renderChallenges();
-  } else if (pageKey === 'challenge-participation') {
-    contentHtml = renderChallengeParticipation();
-  } else if (pageKey === 'badges') {
-    contentHtml = renderBadges();
-  } else if (pageKey === 'rewards') {
-    contentHtml = renderRewards();
-  } else if (pageKey === 'leaderboard') {
-    contentHtml = renderLeaderboard();
+// ----------------------------------------------------
+// Helper Functions for Local Storage State
+// ----------------------------------------------------
+function getSharedCategories() {
+  const categories = localStorage.getItem(CATEGORIES_KEY);
+  if (!categories) {
+    const defaultCategories = [
+      { name: 'Office Carbon Reduction', type: 'Challenge Category', count: 4, status: 'Active' },
+      { name: 'Community Outreach', type: 'CSR Category', count: 8, status: 'Active' },
+      { name: 'Renewable Transition', type: 'Challenge Category', count: 2, status: 'Active' },
+      { name: 'Office Green', type: 'Challenge Category', count: 1, status: 'Active' },
+      { name: 'Transport', type: 'Challenge Category', count: 1, status: 'Active' },
+      { name: 'Electricity', type: 'Challenge Category', count: 1, status: 'Active' }
+    ];
+    localStorage.setItem(CATEGORIES_KEY, JSON.stringify(defaultCategories));
+    return defaultCategories;
   }
+  try {
+    return JSON.parse(categories);
+  } catch (e) {
+    return [];
+  }
+}
+
+function loadState() {
+  const defaultState = {
+    currentUser: 'Aditi Rao',
+    employees: {
+      'Aditi Rao': { xp: 3910, department: 'Product Design & R&D', badges: ['badge1', 'badge2'] },
+      'Karan Shah': { xp: 1250, department: 'Finance & Operations', badges: ['badge1'] },
+      'Mark Robinson': { xp: 850, department: 'Logistics & Supply Chain', badges: [] },
+      'Sarah Jenkins': { xp: 1480, department: 'Product Design & R&D', badges: ['badge1', 'badge3'] }
+    },
+    challenges: [
+      { id: 'c1', title: 'Sustainability Sprint', category: 'Office Carbon Reduction', description: 'Participate in carbon offsetting, waste recycling, and energy efficiency actions to score points.', xp: 200, difficulty: 'Hard', deadline: '2026-07-20', status: 'Active', evidenceRequired: true },
+      { id: 'c2', title: 'Recycle Challenge', category: 'Office Green', description: 'Sort office waste into designated organic, recyclable, and general bins for 5 days.', xp: 80, difficulty: 'Easy', deadline: '2026-07-15', status: 'Active', evidenceRequired: true },
+      { id: 'c3', title: 'Commute Green Week', category: 'Transport', description: 'Walk, cycle, carpool or take public transit to work for 4 consecutive days.', xp: 120, difficulty: 'Medium', deadline: '2026-07-25', status: 'Draft', evidenceRequired: true },
+      { id: 'c4', title: 'The Paperless Office', category: 'Office Green', description: 'Avoid printing any physical documents for 5 consecutive workdays. Go 100% digital.', xp: 100, difficulty: 'Easy', deadline: '2026-07-30', status: 'Active', evidenceRequired: false },
+      { id: 'c5', title: 'Energy Audit Champion', category: 'Electricity', description: 'Perform a standby energy audit check on idle appliances in your department, listing savings.', xp: 250, difficulty: 'Medium', deadline: '2026-08-01', status: 'Under Review', evidenceRequired: true }
+    ],
+    participations: [
+      { id: 'p1', challengeId: 'c1', employee: 'Karan Shah', status: 'Approved', proof: 'strava_commute_log.png', xpAwarded: 200 },
+      { id: 'p2', challengeId: 'c2', employee: 'Aditi Rao', status: 'Pending', proof: 'recycle_bin_photo.jpg', xpAwarded: 0 },
+      { id: 'p3', challengeId: 'c4', employee: 'Sarah Jenkins', status: 'Approved', proof: 'paperless_report.pdf', xpAwarded: 100 }
+    ],
+    badges: [
+      { id: 'badge1', name: 'Green Beginner', description: 'Log your first carbon transaction or join a challenge.', unlockRule: 'Join 1 Challenge', icon: '🌿', theme: 'diff-easy' },
+      { id: 'badge2', name: 'Carbon Saver', description: 'Earn 100 XP or complete a carbon-related challenge.', unlockRule: 'XP >= 100', icon: '🔥', theme: 'diff-medium' },
+      { id: 'badge3', name: 'Sustainability Champion', description: 'Earn 1,000 XP in sustainability points.', unlockRule: 'XP >= 1000', icon: '🌎', theme: 'diff-hard' },
+      { id: 'badge4', name: 'Team Player', description: 'Complete at least 2 challenges.', unlockRule: 'Completed Challenges >= 2', icon: '⭐', theme: 'diff-gamify' }
+    ],
+    rewards: [
+      { id: 'r1', name: 'Re-usable Bamboo Coffee Cup', description: 'Get a double-walled branded bamboo mug for your daily commute coffee run.', points: 200, stock: 12, icon: '☕' },
+      { id: 'r2', name: '1-Month City Bike Share Pass', description: 'Redeem code for a free 30-day city cycle rentals membership. Promotes zero carbon travel.', points: 1000, stock: 8, icon: '🚲' },
+      { id: 'r3', name: 'Plant a Tree in Your Name', description: 'We work with OneTreePlanted to place an indigenous species tree. You get a certificate.', points: 300, stock: 9999, icon: '🌲' }
+    ],
+    redemptions: [
+      { id: 'red1', employee: 'Aditi Rao', rewardName: 'Plant a Tree in Your Name', points: 300, date: '2026-07-11' }
+    ],
+    notifications: [
+      { id: 'n1', text: 'Sarah Jenkins completed "The Paperless Office" (+100 XP)', date: '2026-07-11', type: 'success' },
+      { id: 'n2', text: 'Aditi Rao redeemed "Plant a Tree in Your Name" (-300 XP)', date: '2026-07-11', type: 'info' }
+    ],
+    activeFilterStatus: 'All'
+  };
+
+  const data = localStorage.getItem(STORAGE_KEY);
+  if (data) {
+    try {
+      const stateObj = JSON.parse(data);
+      // Migrate / reset if descriptions are missing to clear old hackathon cache
+      if (stateObj && stateObj.challenges && stateObj.challenges.some(c => !c.description)) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultState));
+        return defaultState;
+      }
+      return stateObj;
+    } catch (e) {
+      console.error("Failed to parse gamification state, using defaults", e);
+    }
+  }
+
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultState));
+  return defaultState;
+}
+
+// Instantiate state object loaded from storage
+const state = loadState();
+
+function saveState() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+// ----------------------------------------------------
+// UI Logic Helper Functions
+// ----------------------------------------------------
+function getInitials(name) {
+  return name ? name.split(' ').map(n => n[0]).join('') : 'U';
+}
+
+function showToast(message, type = 'success') {
+  const container = document.getElementById('gamification-toast-container');
+  if (!container) return;
+
+  const toast = document.createElement('div');
+  toast.className = `toast toast-${type}`;
+  toast.innerHTML = `
+    <span class="toast-message">${message}</span>
+    <button class="toast-close">&times;</button>
+  `;
+  container.appendChild(toast);
+
+  // Trigger browser flow transition
+  setTimeout(() => toast.classList.add('visible'), 10);
+
+  // Auto-remove toast
+  const dismissTimer = setTimeout(() => {
+    toast.classList.remove('visible');
+    setTimeout(() => toast.remove(), 300);
+  }, 4000);
+
+  // Manual dismiss
+  toast.querySelector('.toast-close').addEventListener('click', () => {
+    clearTimeout(dismissTimer);
+    toast.classList.remove('visible');
+    setTimeout(() => toast.remove(), 300);
+  });
+}
+
+function checkAndAwardBadges(employeeName) {
+  const employee = state.employees[employeeName];
+  if (!employee) return [];
+
+  const completedChallengesCount = state.participations.filter(
+    p => p.employee === employeeName && p.status === 'Approved'
+  ).length;
+
+  const newlyAwarded = [];
+
+  state.badges.forEach(badge => {
+    if (employee.badges.includes(badge.id)) return; // Already unlocked
+
+    let shouldUnlock = false;
+    if (badge.id === 'badge1') {
+      const joinedCount = state.participations.filter(p => p.employee === employeeName).length;
+      if (joinedCount >= 1) shouldUnlock = true;
+    } else if (badge.id === 'badge2') {
+      if (employee.xp >= 100) shouldUnlock = true;
+    } else if (badge.id === 'badge3') {
+      if (employee.xp >= 1000) shouldUnlock = true;
+    } else if (badge.id === 'badge4') {
+      if (completedChallengesCount >= 2) shouldUnlock = true;
+    }
+
+    if (shouldUnlock) {
+      employee.badges.push(badge.id);
+      newlyAwarded.push(badge.name);
+
+      // Log notification
+      state.notifications.unshift({
+        id: 'notif_' + Date.now() + '_' + Math.random(),
+        text: `🎉 Achievement: ${employeeName} unlocked "${badge.name}" badge!`,
+        date: new Date().toISOString().split('T')[0],
+        type: 'badge'
+      });
+    }
+  });
+
+  if (newlyAwarded.length > 0) {
+    saveState();
+  }
+  return newlyAwarded;
+}
+
+// ----------------------------------------------------
+// Main View Export Render Function
+// ----------------------------------------------------
+export function renderGamificationPage(container, pageKey) {
+  if (!pageKey) pageKey = 'challenges';
+
+  // Make sure state is refreshed from storage if loaded again
+  const refreshedState = loadState();
+  Object.assign(state, refreshedState);
 
   container.innerHTML = `
     <div class="view-container">
-      <div class="view-header">
-        <h1 class="view-title">${getGamificationTitle(pageKey)}</h1>
-        <p class="view-description">${getGamificationDesc(pageKey)}</p>
+      
+      <!-- Gamification Header Row with Interactive Switcher -->
+      <div class="gamification-header-row">
+        <div class="view-header">
+          <h1 class="view-title">${getGamificationTitle(pageKey)}</h1>
+          <p class="view-description">${getGamificationDesc(pageKey)}</p>
+        </div>
+        
+        <!-- Active User Widget -->
+        <div class="simulated-user-widget">
+          <div class="active-user-avatar">${getInitials(state.currentUser)}</div>
+          <div class="active-user-details">
+            <div class="active-user-name">${state.currentUser}</div>
+            <div class="active-user-meta">
+              <span class="active-user-dept">${state.employees[state.currentUser]?.department || 'Staff'}</span>
+              <span class="active-user-points"><i data-lucide="zap"></i> ${state.employees[state.currentUser]?.xp || 0} XP</span>
+            </div>
+          </div>
+          <div class="active-user-switcher">
+            <select id="employee-switcher" class="gamify-select">
+              ${Object.keys(state.employees).map(name => `
+                <option value="${name}" ${state.currentUser === name ? 'selected' : ''}>Switch to: ${name}</option>
+              `).join('')}
+            </select>
+          </div>
+        </div>
       </div>
-      ${contentHtml}
+
+      <!-- Sub Navigation connected tabs -->
+      <div class="sub-nav-tabs">
+        <a href="#gamification/challenges" class="sub-nav-tab ${pageKey === 'challenges' ? 'active' : ''}">Challenges</a>
+        <a href="#gamification/challenge-participation" class="sub-nav-tab ${pageKey === 'challenge-participation' ? 'active' : ''}">Challenge Participation</a>
+        <a href="#gamification/badges" class="sub-nav-tab ${pageKey === 'badges' ? 'active' : ''}">Badges</a>
+        <a href="#gamification/rewards" class="sub-nav-tab ${pageKey === 'rewards' ? 'active' : ''}">Rewards</a>
+        <a href="#gamification/leaderboard" class="sub-nav-tab ${pageKey === 'leaderboard' ? 'active' : ''}">Leaderboard</a>
+      </div>
+
+      <!-- Sub-module Content viewport -->
+      <div class="gamification-content-panel">
+        ${renderSubModulePanel(pageKey)}
+      </div>
     </div>
+    
+    <!-- Dynamic Modals Container -->
+    <div id="gamification-modals">
+      ${renderCreateChallengeModal()}
+      ${renderSubmitEvidenceModal()}
+    </div>
+    
+    <!-- Toast notifications popup for dynamic events -->
+    <div id="gamification-toast-container" class="toast-container"></div>
+    
+    <style>${getGamificationCSS()}</style>
   `;
+
+  // Bind events
+  bindGamificationEvents(container, pageKey);
+
+  // Initialize Lucide icons
+  if (window.lucide) {
+    window.lucide.createIcons();
+  }
 }
 
 function getGamificationTitle(key) {
@@ -50,92 +277,270 @@ function getGamificationDesc(key) {
   }
 }
 
-// ----------------------------------------------------
-// Page Renders
-// ----------------------------------------------------
+function renderSubModulePanel(key) {
+  switch (key) {
+    case 'challenges':
+      return renderChallenges();
+    case 'challenge-participation':
+      return renderChallengeParticipation();
+    case 'badges':
+      return renderBadges();
+    case 'rewards':
+      return renderRewards();
+    case 'leaderboard':
+      return renderLeaderboard();
+    default:
+      return `<div class="glass-card">Sub-section not found.</div>`;
+  }
+}
 
+// ----------------------------------------------------
+// 1. Challenges Sub-Module Panel
+// ----------------------------------------------------
 function renderChallenges() {
+  const filter = state.activeFilterStatus || 'All';
+  
+  // Filter challenges list
+  const filteredChallenges = state.challenges.filter(c => {
+    if (filter === 'All') return true;
+    return c.status === filter;
+  });
+
+  const cardsHtml = filteredChallenges.map(c => {
+    // Get participation record for current employee
+    const part = state.participations.find(p => p.challengeId === c.id && p.employee === state.currentUser);
+    
+    let btnHtml = '';
+    let statusPillHtml = '';
+
+    // Draw status indicators and action buttons based on state
+    if (c.status === 'Draft') {
+      statusPillHtml = `<span class="status-pill state-draft">Draft</span>`;
+      btnHtml = `
+        <div class="card-action-group">
+          <button class="btn btn-secondary btn-activate-challenge full-width" data-id="${c.id}"><i data-lucide="play"></i> Activate</button>
+        </div>
+      `;
+    } else if (c.status === 'Archived') {
+      statusPillHtml = `<span class="status-pill state-archived">Archived</span>`;
+      btnHtml = `<button class="btn btn-secondary full-width" disabled>Archived</button>`;
+    } else if (c.status === 'Completed') {
+      statusPillHtml = `<span class="status-pill state-completed">Challenge Completed</span>`;
+      btnHtml = `<button class="btn btn-secondary full-width" disabled><i data-lucide="check-circle-2"></i> Finished</button>`;
+    } else { // Active or Under Review challenge
+      if (!part) {
+        if (c.status === 'Active') {
+          btnHtml = `<button class="btn btn-gamify btn-join-challenge full-width" data-id="${c.id}"><i data-lucide="user-plus"></i> Join Challenge</button>`;
+        } else {
+          btnHtml = `<button class="btn btn-secondary full-width" disabled>Under Review</button>`;
+        }
+        statusPillHtml = `<span class="status-pill state-active">Active</span>`;
+      } else if (part.status === 'Joined') {
+        btnHtml = `<button class="btn btn-warning btn-submit-evidence-trigger full-width" data-id="${c.id}" data-title="${c.title}" data-xp="${c.xp}"><i data-lucide="file-text"></i> Submit Evidence</button>`;
+        statusPillHtml = `<span class="status-pill state-joined">Joined</span>`;
+      } else if (part.status === 'Pending') {
+        btnHtml = `<button class="btn btn-secondary full-width" disabled><i data-lucide="clock"></i> Pending Approval</button>`;
+        statusPillHtml = `<span class="status-pill state-under-review">Under Review</span>`;
+      } else if (part.status === 'Approved') {
+        btnHtml = `<button class="btn btn-success-active full-width" disabled><i data-lucide="check"></i> Completed (+${c.xp} XP)</button>`;
+        statusPillHtml = `<span class="status-pill state-approved">Approved</span>`;
+      } else if (part.status === 'Rejected') {
+        btnHtml = `<button class="btn btn-danger btn-submit-evidence-trigger full-width" data-id="${c.id}" data-title="${c.title}" data-xp="${c.xp}"><i data-lucide="alert-circle"></i> Rejected (Resubmit)</button>`;
+        statusPillHtml = `<span class="status-pill state-rejected">Rejected</span>`;
+      }
+    }
+
+    const diffClass = c.difficulty === 'Easy' ? 'diff-easy' : (c.difficulty === 'Medium' ? 'diff-medium' : 'diff-hard');
+
+    return `
+      <div class="glass-card challenge-card">
+        <div class="c-card-header">
+          <span class="difficulty-tag ${diffClass}">${c.difficulty}</span>
+          <span class="points-badge">${c.xp} XP</span>
+        </div>
+        <h4 class="challenge-title">${c.title}</h4>
+        <p class="challenge-desc">${c.description}</p>
+        <div class="challenge-meta">
+          <span>Category: ${c.category}</span>
+          <span>Deadline: ${c.deadline}</span>
+        </div>
+        <div class="challenge-card-footer">
+          <div class="status-indicator">${statusPillHtml}</div>
+          ${btnHtml}
+        </div>
+      </div>
+    `;
+  }).join('');
+
   return `
     <div class="table-actions">
-      <div class="filters-row">
-        <select class="filter-dropdown">
-          <option>All Difficulties</option>
-          <option>Easy</option>
-          <option>Medium</option>
-          <option>Hard</option>
-        </select>
+      <!-- Visual Pipeline Status Switcher -->
+      <div class="lifecycle-bar">
+        <button class="lifecycle-step ${filter === 'All' ? 'active' : ''}" data-status="All">
+          <span class="step-label">All Challenges</span>
+        </button>
+        <div class="step-connector"></div>
+        <button class="lifecycle-step ${filter === 'Draft' ? 'active' : ''}" data-status="Draft">
+          <span class="step-dot color-draft"></span>
+          <span class="step-label">Draft</span>
+        </button>
+        <div class="step-connector">➔</div>
+        <button class="lifecycle-step ${filter === 'Active' ? 'active' : ''}" data-status="Active">
+          <span class="step-dot color-active"></span>
+          <span class="step-label">Active</span>
+        </button>
+        <div class="step-connector">➔</div>
+        <button class="lifecycle-step ${filter === 'Under Review' ? 'active' : ''}" data-status="Under Review">
+          <span class="step-dot color-under-review"></span>
+          <span class="step-label">Under Review</span>
+        </button>
+        <div class="step-connector">➔</div>
+        <button class="lifecycle-step ${filter === 'Completed' ? 'active' : ''}" data-status="Completed">
+          <span class="step-dot color-completed"></span>
+          <span class="step-label">Completed</span>
+        </button>
+        <div class="step-connector">|</div>
+        <button class="lifecycle-step ${filter === 'Archived' ? 'active' : ''}" data-status="Archived">
+          <span class="step-dot color-archived"></span>
+          <span class="step-label">Archived</span>
+        </button>
       </div>
-      <button class="btn btn-gamify"><i data-lucide="plus"></i> Create Challenge</button>
+      
+      <button class="btn btn-gamify" id="create-challenge-btn"><i data-lucide="plus"></i> New Challenge</button>
     </div>
 
+    <!-- Challenges Grid -->
     <div class="grid-3">
-      <div class="glass-card challenge-card">
-        <div class="c-card-header">
-          <span class="difficulty-tag diff-easy">Easy</span>
-          <span class="points-badge">100 XP</span>
-        </div>
-        <h4 class="challenge-title">The Paperless Office</h4>
-        <p class="challenge-desc">Avoid printing any documents for 5 consecutive workdays. Submit your digital doc archive count as proof.</p>
-        <div class="challenge-meta">
-          <span>Category: Office Green</span>
-          <span>Deadline: July 20, 2026</span>
-        </div>
-        <button class="btn btn-gamify full-width">Join Challenge</button>
-      </div>
-
-      <div class="glass-card challenge-card">
-        <div class="c-card-header">
-          <span class="difficulty-tag diff-medium">Medium</span>
-          <span class="points-badge">250 XP</span>
-        </div>
-        <h4 class="challenge-title">Car-free Commute Week</h4>
-        <p class="challenge-desc">Use public transport, bike, or walk to work for 4 days this week. Submit bus ticket photos or cycling logs.</p>
-        <div class="challenge-meta">
-          <span>Category: Transport</span>
-          <span>Deadline: July 18, 2026</span>
-        </div>
-        <button class="btn btn-gamify full-width">Join Challenge</button>
-      </div>
-
-      <div class="glass-card challenge-card">
-        <div class="c-card-header">
-          <span class="difficulty-tag diff-hard">Hard</span>
-          <span class="points-badge">500 XP</span>
-        </div>
-        <h4 class="challenge-title">Energy Audit Champion</h4>
-        <p class="challenge-desc">Perform an appliance power standby check at your department office, listing savings recommendations.</p>
-        <div class="challenge-meta">
-          <span>Category: Electricity</span>
-          <span>Deadline: August 01, 2026</span>
-        </div>
-        <button class="btn btn-gamify full-width">Join Challenge</button>
-      </div>
+      ${cardsHtml ? cardsHtml : '<div class="glass-card full-width text-center" style="grid-column: span 3; padding: 40px; color: var(--text-secondary);">No challenges found in this status state.</div>'}
     </div>
 
-    <style>${getGamificationCSS()}</style>
+    <!-- Two-Column Layout for Badges and Leaderboard -->
+    <div class="challenges-dashboard-row">
+      <!-- Badge Gallery Column -->
+      <div class="dashboard-col col-left">
+        <div class="view-card">
+          <div class="card-header-with-icon">
+            <h3>🏅 Badge Gallery</h3>
+            <span class="card-header-subtitle">Auto-awarded achievements</span>
+          </div>
+          <div class="dashboard-badge-grid">
+            ${renderBadgeGalleryList()}
+          </div>
+        </div>
+      </div>
+
+      <!-- Mini Leaderboard Column -->
+      <div class="dashboard-col col-right">
+        <div class="view-card">
+          <div class="card-header-with-icon">
+            <h3>🏆 Leaderboard</h3>
+            <span class="card-header-subtitle">Individual rankings</span>
+          </div>
+          <div class="mini-leaderboard-list">
+            ${renderMiniLeaderboard()}
+          </div>
+        </div>
+      </div>
+    </div>
   `;
 }
 
+function renderBadgeGalleryList() {
+  const currentBadges = state.employees[state.currentUser]?.badges || [];
+  return state.badges.map(b => {
+    const isUnlocked = currentBadges.includes(b.id);
+    return `
+      <div class="mini-badge-card ${isUnlocked ? 'unlocked' : 'locked'}">
+        <div class="mini-badge-icon">${b.icon}</div>
+        <div class="mini-badge-details">
+          <h4>${b.name}</h4>
+          <p>${b.description}</p>
+          <span class="mini-badge-rule">Rule: ${b.unlockRule}</span>
+        </div>
+        <div class="mini-badge-status">
+          ${isUnlocked ? '<span class="status-text-unlocked"><i data-lucide="sparkles"></i> Unlocked</span>' : '<span class="status-text-locked"><i data-lucide="lock"></i> Locked</span>'}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderMiniLeaderboard() {
+  // Sort employees by XP
+  const sorted = Object.keys(state.employees).map(name => ({
+    name,
+    xp: state.employees[name].xp,
+    dept: state.employees[name].department
+  })).sort((a, b) => b.xp - a.xp);
+
+  return sorted.slice(0, 3).map((item, idx) => {
+    const rankClass = idx === 0 ? 'rank-1' : (idx === 1 ? 'rank-2' : 'rank-3');
+    return `
+      <div class="mini-leaderboard-item">
+        <div class="leaderboard-rank ${rankClass}">${idx + 1}</div>
+        <div class="user-avatar-small">${getInitials(item.name)}</div>
+        <div class="leaderboard-item-details">
+          <strong>${item.name}</strong>
+          <span class="dept-text">${item.dept}</span>
+        </div>
+        <div class="leaderboard-item-xp">${item.xp.toLocaleString()} XP</div>
+      </div>
+    `;
+  }).join('');
+}
+
+// ----------------------------------------------------
+// 2. Challenge Participation Sub-Module Panel (Admin Queue)
+// ----------------------------------------------------
 function renderChallengeParticipation() {
+  // Compute pending and active counts
+  const totalXP = Object.keys(state.employees).reduce((sum, name) => sum + state.employees[name].xp, 0);
+  const pendingSubmissions = state.participations.filter(p => p.status === 'Pending');
+  const activeParticipations = state.participations.filter(p => p.status === 'Joined');
+
+  // Generate table rows
+  const tableRows = pendingSubmissions.map(p => {
+    const challenge = state.challenges.find(c => c.id === p.challengeId) || { title: 'Unknown Challenge', xp: 0 };
+    return `
+      <tr data-participation-id="${p.id}">
+        <td><strong>${p.employee}</strong></td>
+        <td>${challenge.title}</td>
+        <td>
+          <a href="#" class="proof-link" onclick="event.preventDefault(); alert('Evidence Content: ${p.proof}');">
+            <i data-lucide="file"></i> ${p.proof}
+          </a>
+        </td>
+        <td><span class="status-tag status-tag-pending">Under Review</span></td>
+        <td><strong>${challenge.xp} XP</strong></td>
+        <td>
+          <div class="action-buttons-group">
+            <button class="action-btn-mini btn-approve btn-approve-submission" data-id="${p.id}" title="Approve Submission"><i data-lucide="check"></i></button>
+            <button class="action-btn-mini btn-reject btn-reject-submission" data-id="${p.id}" title="Reject Submission"><i data-lucide="x"></i></button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+
   return `
     <div class="grid-3">
       <div class="glass-card stat-box border-gamify">
         <span class="stat-lbl">Active Participations</span>
-        <h3>34</h3>
+        <h3>${activeParticipations.length}</h3>
       </div>
       <div class="glass-card stat-box">
         <span class="stat-lbl">Submissions Pending Review</span>
-        <h3>3</h3>
+        <h3>${pendingSubmissions.length}</h3>
       </div>
       <div class="glass-card stat-box">
         <span class="stat-lbl">Total XP Distributed</span>
-        <h3>42,500 XP</h3>
+        <h3>${totalXP.toLocaleString()} XP</h3>
       </div>
     </div>
 
     <div class="view-card">
       <div class="card-header">
-        <h3>Challenge Submissions</h3>
+        <h3>Challenge Submissions Approval Queue</h3>
       </div>
       <div class="table-wrapper">
         <table class="data-table">
@@ -150,124 +555,186 @@ function renderChallengeParticipation() {
             </tr>
           </thead>
           <tbody>
-            <tr>
-              <td><strong>Mark Robinson</strong></td>
-              <td>Car-free Commute Week</td>
-              <td><a href="#" class="proof-link"><i data-lucide="image"></i> commute_log_strava.png</a></td>
-              <td><span class="status-tag status-tag-pending">Under Review</span></td>
-              <td>250 XP</td>
-              <td>
-                <div class="action-buttons-group">
-                  <button class="action-btn-mini btn-approve"><i data-lucide="check"></i></button>
-                  <button class="action-btn-mini btn-reject"><i data-lucide="x"></i></button>
-                </div>
-              </td>
-            </tr>
-            <tr>
-              <td><strong>Sarah Jenkins</strong></td>
-              <td>The Paperless Office</td>
-              <td><a href="#" class="proof-link"><i data-lucide="file"></i> digital_notes_folder.pdf</a></td>
-              <td><span class="status-tag status-tag-active">Approved</span></td>
-              <td>100 XP</td>
-              <td><span class="verified-text"><i data-lucide="sparkles"></i> XP Awarded</span></td>
-            </tr>
+            ${tableRows ? tableRows : '<tr><td colspan="6" class="text-center" style="padding: 30px; color: var(--text-secondary);"><i data-lucide="info"></i> No challenge submissions pending review in the queue.</td></tr>'}
           </tbody>
         </table>
       </div>
     </div>
-
-    <style>${getGamificationCSS()}</style>
+    
+    <!-- Notifications Log -->
+    <div class="view-card" style="margin-top: 24px;">
+      <div class="card-header">
+        <h3>Recent Gamification Notifications</h3>
+      </div>
+      <div class="notification-log-list">
+        ${state.notifications.map(n => `
+          <div class="notif-log-item notif-type-${n.type || 'info'}">
+            <span class="notif-dot"></span>
+            <span class="notif-text">${n.text}</span>
+            <span class="notif-date">${n.date}</span>
+          </div>
+        `).join('')}
+      </div>
+    </div>
   `;
 }
 
+// ----------------------------------------------------
+// 3. Badges Sub-Module Panel (Full Gallery)
+// ----------------------------------------------------
 function renderBadges() {
+  const currentBadges = state.employees[state.currentUser]?.badges || [];
+  
+  const badgeCardsHtml = state.badges.map(b => {
+    const isUnlocked = currentBadges.includes(b.id);
+    return `
+      <div class="glass-card badge-gallery-card ${isUnlocked ? 'unlocked' : 'locked'}">
+        <div class="badge-icon-large">${b.icon}</div>
+        <h4>${b.name}</h4>
+        <p>${b.description}</p>
+        <span class="badge-rule">Unlock Rule: ${b.unlockRule}</span>
+        <span class="badge-status-tag">${isUnlocked ? '<i data-lucide="sparkles"></i> Unlocked' : '<i data-lucide="lock"></i> Locked'}</span>
+      </div>
+    `;
+  }).join('');
+
   return `
+    <div class="badge-summary-header">
+      <div class="badge-stats-row">
+        <span>Unlocked: <strong>${currentBadges.length} / ${state.badges.length}</strong> Badges</span>
+        <div class="progress-bar-container">
+          <div class="progress-bar-fill" style="width: ${(currentBadges.length / state.badges.length) * 100}%"></div>
+        </div>
+      </div>
+    </div>
     <div class="grid-4">
-      <div class="glass-card badge-gallery-card unlocked">
-        <div class="badge-icon-large">🌿</div>
-        <h4>Green Initiate</h4>
-        <p>Complete your first carbon logging event.</p>
-        <span class="badge-rule">Unlock: Log 1 carbon transaction</span>
-        <span class="badge-status-tag">Unlocked</span>
-      </div>
-
-      <div class="glass-card badge-gallery-card unlocked">
-        <div class="badge-icon-large">🚴</div>
-        <h4>Commute Champion</h4>
-        <p>Adopt zero-emission transport solutions.</p>
-        <span class="badge-rule">Unlock: Complete 'Car-free Commute'</span>
-        <span class="badge-status-tag">Unlocked</span>
-      </div>
-
-      <div class="glass-card badge-gallery-card unlocked">
-        <div class="badge-icon-large">🏆</div>
-        <h4>XP Centurion</h4>
-        <p>Earn 1,000 XP in sustainability points.</p>
-        <span class="badge-rule">Unlock: Accumulate 1,000 XP</span>
-        <span class="badge-status-tag">Unlocked</span>
-      </div>
-
-      <div class="glass-card badge-gallery-card locked">
-        <div class="badge-icon-large">🏛️</div>
-        <h4>Governance Sentry</h4>
-        <p>Sign all policy guidelines instantly.</p>
-        <span class="badge-rule">Unlock: 100% Policy signatures</span>
-        <span class="badge-status-tag">Locked</span>
-      </div>
+      ${badgeCardsHtml}
     </div>
-
-    <style>${getGamificationCSS()}</style>
   `;
 }
 
+// ----------------------------------------------------
+// 4. Rewards Sub-Module Panel (Catalog & Redemption)
+// ----------------------------------------------------
 function renderRewards() {
+  const points = state.employees[state.currentUser]?.xp || 0;
+
+  const rewardCardsHtml = state.rewards.map(r => {
+    const isOutOfStock = r.stock <= 0;
+    const canAfford = points >= r.points;
+    const isRedeemable = !isOutOfStock && canAfford;
+
+    return `
+      <div class="glass-card reward-store-card">
+        <div class="reward-media">${r.icon}</div>
+        <div class="reward-body">
+          <span class="reward-cost">${r.points} Points</span>
+          <h4>${r.name}</h4>
+          <p>${r.description}</p>
+          <div class="reward-stock-row">
+            <span class="stock-count">Stock: ${r.stock > 1000 ? 'Unlimited' : `${r.stock} units`}</span>
+            <button class="btn btn-gamify btn-redeem-reward" data-id="${r.id}" ${isRedeemable ? '' : 'disabled'}>
+              ${isOutOfStock ? 'Out of Stock' : (canAfford ? 'Redeem Reward' : 'Needs More XP')}
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+
   return `
-    <div class="grid-3">
-      <div class="glass-card reward-store-card">
-        <div class="reward-media">☕</div>
-        <div class="reward-body">
-          <span class="reward-cost">200 Points</span>
-          <h4>Re-usable Bamboo Coffee Cup</h4>
-          <p>Get a double-walled branded bamboo mug for your daily commute coffee run.</p>
-          <div class="reward-stock-row">
-            <span class="stock-count">Stock: 12 units</span>
-            <button class="btn btn-gamify">Redeem Reward</button>
-          </div>
-        </div>
-      </div>
-
-      <div class="glass-card reward-store-card">
-        <div class="reward-media">🚲</div>
-        <div class="reward-body">
-          <span class="reward-cost">1,000 Points</span>
-          <h4>1-Month City Bike Share Pass</h4>
-          <p>Redeem code for a free 30-day city cycle rentals membership. Promotes zero carbon travel.</p>
-          <div class="reward-stock-row">
-            <span class="stock-count">Stock: 8 units</span>
-            <button class="btn btn-gamify">Redeem Reward</button>
-          </div>
-        </div>
-      </div>
-
-      <div class="glass-card reward-store-card">
-        <div class="reward-media">🌲</div>
-        <div class="reward-body">
-          <span class="reward-cost">300 Points</span>
-          <h4>Plant a Tree in Your Name</h4>
-          <p>We work with OneTreePlanted to place an indigenous species tree. You get a certificate.</p>
-          <div class="reward-stock-row">
-            <span class="stock-count">Unlimited Stock</span>
-            <button class="btn btn-gamify">Redeem Reward</button>
-          </div>
-        </div>
+    <div class="rewards-balance-header">
+      <div class="balance-pill">
+        <span class="balance-lbl"><i data-lucide="zap"></i> Your Points Balance</span>
+        <span class="balance-amount">${points.toLocaleString()} Points</span>
       </div>
     </div>
-
-    <style>${getGamificationCSS()}</style>
+    <div class="grid-3">
+      ${rewardCardsHtml}
+    </div>
+    
+    <!-- Redemptions List -->
+    <div class="view-card" style="margin-top: 24px;">
+      <div class="card-header">
+        <h3>Redemption History</h3>
+      </div>
+      <div class="table-wrapper">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Employee</th>
+              <th>Reward Item</th>
+              <th>Points Deducted</th>
+              <th>Redemption Date</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${state.redemptions.map(red => `
+              <tr>
+                <td><strong>${red.employee}</strong></td>
+                <td>${red.rewardName}</td>
+                <td><span class="deducted-points">-${red.points} XP</span></td>
+                <td>${red.date}</td>
+                <td><span class="status-tag status-tag-active">Fulfilled</span></td>
+              </tr>
+            `).join('')}
+            ${state.redemptions.length === 0 ? '<tr><td colspan="5" class="text-center" style="padding:20px; color:var(--text-secondary);">No redemptions logged yet.</td></tr>' : ''}
+          </tbody>
+        </table>
+      </div>
+    </div>
   `;
 }
 
+// ----------------------------------------------------
+// 5. Leaderboard Sub-Module Panel (Expanded)
+// ----------------------------------------------------
 function renderLeaderboard() {
+  // Sort individuals
+  const sortedIndividuals = Object.keys(state.employees).map(name => ({
+    name,
+    xp: state.employees[name].xp,
+    dept: state.employees[name].department,
+    badgesCount: state.employees[name].badges.length
+  })).sort((a, b) => b.xp - a.xp);
+
+  const individualRows = sortedIndividuals.map((emp, index) => {
+    const rankClass = index === 0 ? 'rank-1' : (index === 1 ? 'rank-2' : 'rank-3');
+    return `
+      <div class="list-item">
+        <div class="leaderboard-rank ${rankClass}">${index + 1}</div>
+        <div class="user-avatar-small">${getInitials(emp.name)}</div>
+        <div class="item-info">
+          <strong>${emp.name}</strong>
+          <span class="item-sub">${emp.dept} &bull; ${emp.badgesCount} Badges</span>
+        </div>
+        <span class="points-badge">${emp.xp.toLocaleString()} XP</span>
+      </div>
+    `;
+  }).join('');
+
+  // Department average hardcoded layout as per mockup
+  const departments = [
+    { name: 'Product Design & R&D', env: 86, soc: 82, gov: 94, score: 87.3 },
+    { name: 'Finance & Operations', env: 78, soc: 74, gov: 88, score: 80.0 },
+    { name: 'Logistics & Supply Chain', env: 64, soc: 72, gov: 91, score: 75.7 }
+  ];
+
+  const departmentRows = departments.map((dept, index) => {
+    const rankClass = index === 0 ? 'rank-1' : (index === 1 ? 'rank-2' : 'rank-3');
+    return `
+      <div class="list-item">
+        <div class="leaderboard-rank ${rankClass}">${index + 1}</div>
+        <div class="item-info">
+          <strong>${dept.name}</strong>
+          <span class="item-sub">Env: ${dept.env} | Soc: ${dept.soc} | Gov: ${dept.gov}</span>
+        </div>
+        <span class="points-badge badge-green">${dept.score} / 100</span>
+      </div>
+    `;
+  }).join('');
+
   return `
     <div class="grid-2">
       <!-- Individual Leaderboard -->
@@ -276,33 +743,7 @@ function renderLeaderboard() {
           <h3>Individual Leaderboard</h3>
         </div>
         <div class="list-container">
-          <div class="list-item">
-            <div class="leaderboard-rank rank-1">1</div>
-            <div class="user-avatar-small">AM</div>
-            <div class="item-info">
-              <strong>Alex Morgan</strong>
-              <span class="item-sub">Product Design &bull; 4 Badges</span>
-            </div>
-            <span class="points-badge">1,480 XP</span>
-          </div>
-          <div class="list-item">
-            <div class="leaderboard-rank rank-2">2</div>
-            <div class="user-avatar-small">SK</div>
-            <div class="item-info">
-              <strong>Sarah K.</strong>
-              <span class="item-sub">Engineering &bull; 3 Badges</span>
-            </div>
-            <span class="points-badge">1,310 XP</span>
-          </div>
-          <div class="list-item">
-            <div class="leaderboard-rank rank-3">3</div>
-            <div class="user-avatar-small">JD</div>
-            <div class="item-info">
-              <strong>Jane Doe</strong>
-              <span class="item-sub">Sustainability Admin &bull; 3 Badges</span>
-            </div>
-            <span class="points-badge">1,250 XP</span>
-          </div>
+          ${individualRows}
         </div>
       </div>
 
@@ -312,60 +753,704 @@ function renderLeaderboard() {
           <h3>Department ESG Average Scores</h3>
         </div>
         <div class="list-container">
-          <div class="list-item">
-            <div class="leaderboard-rank rank-1">1</div>
-            <div class="item-info">
-              <strong>Product Design & R&D</strong>
-              <span class="item-sub">Env: 86 | Soc: 82 | Gov: 94</span>
-            </div>
-            <span class="points-badge badge-green">87.3 / 100</span>
-          </div>
-          <div class="list-item">
-            <div class="leaderboard-rank rank-2">2</div>
-            <div class="item-info">
-              <strong>Finance & Operations</strong>
-              <span class="item-sub">Env: 78 | Soc: 74 | Gov: 88</span>
-            </div>
-            <span class="points-badge badge-green">80.0 / 100</span>
-          </div>
-          <div class="list-item">
-            <div class="leaderboard-rank rank-3">3</div>
-            <div class="item-info">
-              <strong>Logistics & Supply</strong>
-              <span class="item-sub">Env: 64 | Soc: 72 | Gov: 91</span>
-            </div>
-            <span class="points-badge badge-green">75.7 / 100</span>
-          </div>
+          ${departmentRows}
         </div>
       </div>
     </div>
-
-    <style>${getGamificationCSS()}</style>
   `;
 }
 
+// ----------------------------------------------------
+// Modal Renders
+// ----------------------------------------------------
+function renderCreateChallengeModal() {
+  const categories = getSharedCategories();
+  return `
+    <div id="create-challenge-modal" class="gamify-modal">
+      <div class="gamify-modal-content">
+        <div class="gamify-modal-header">
+          <h3>Create New Challenge</h3>
+          <button class="close-modal-btn" id="close-create-modal">&times;</button>
+        </div>
+        <form id="create-challenge-form" class="gamify-form">
+          <div class="form-group">
+            <label for="c-title">Challenge Title</label>
+            <input type="text" id="c-title" required placeholder="e.g. Commute Green Week">
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="c-category">Category</label>
+              <select id="c-category" required>
+                ${categories.map(cat => `<option value="${cat.name}">${cat.name}</option>`).join('')}
+              </select>
+            </div>
+            <div class="form-group">
+              <label for="c-difficulty">Difficulty</label>
+              <select id="c-difficulty" required>
+                <option value="Easy">Easy</option>
+                <option value="Medium">Medium</option>
+                <option value="Hard">Hard</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="c-xp">XP Reward</label>
+              <input type="number" id="c-xp" required min="10" max="1000" value="100">
+            </div>
+            <div class="form-group">
+              <label for="c-deadline">Deadline</label>
+              <input type="date" id="c-deadline" required value="2026-07-25">
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="c-desc">Description</label>
+            <textarea id="c-desc" required rows="3" placeholder="Describe the challenge actions and expectations..."></textarea>
+          </div>
+          <div class="form-row checkbox-row">
+            <label class="checkbox-lbl">
+              <input type="checkbox" id="c-evidence" checked>
+              Evidence Required (proof upload required)
+            </label>
+          </div>
+          <div class="form-group">
+            <label for="c-status">Initial Lifecycle Status</label>
+            <select id="c-status">
+              <option value="Draft">Draft (Setup mode)</option>
+              <option value="Active">Active (Publish immediately)</option>
+            </select>
+          </div>
+          <div class="form-actions">
+            <button type="button" class="btn btn-secondary" id="cancel-create-modal">Cancel</button>
+            <button type="submit" class="btn btn-gamify">Create Challenge</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `;
+}
+
+function renderSubmitEvidenceModal() {
+  return `
+    <div id="submit-evidence-modal" class="gamify-modal">
+      <div class="gamify-modal-content">
+        <div class="gamify-modal-header">
+          <h3>Submit Challenge Evidence</h3>
+          <button class="close-modal-btn" id="close-submit-modal">&times;</button>
+        </div>
+        <form id="submit-evidence-form" class="gamify-form">
+          <input type="hidden" id="submit-challenge-id">
+          <div class="challenge-submit-info">
+            <p>You are submitting evidence for: <strong id="submit-challenge-title">Challenge Title</strong></p>
+            <p>XP Reward: <strong id="submit-challenge-xp">100 XP</strong></p>
+          </div>
+          <div class="form-group">
+            <label for="evidence-file">Upload Proof (Simulated file name, e.g. strava_log.png)</label>
+            <input type="text" id="evidence-file" required placeholder="e.g. commute_log_strava.png">
+          </div>
+          <div class="form-group">
+            <label for="evidence-notes">Submission Notes / Summary</label>
+            <textarea id="evidence-notes" rows="3" placeholder="Summarize your actions..."></textarea>
+          </div>
+          <div class="form-actions">
+            <button type="button" class="btn btn-secondary" id="cancel-submit-modal">Cancel</button>
+            <button type="submit" class="btn btn-gamify">Submit for Review</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  `;
+}
+
+// ----------------------------------------------------
+// Event Bindings
+// ----------------------------------------------------
+function bindGamificationEvents(container, pageKey) {
+  // 1. Simulated Employee Switcher
+  const userSwitcher = container.querySelector('#employee-switcher');
+  if (userSwitcher) {
+    userSwitcher.addEventListener('change', (e) => {
+      state.currentUser = e.target.value;
+      saveState();
+      renderGamificationPage(container, pageKey);
+      showToast(`Switched active user to: ${state.currentUser}`, 'info');
+    });
+  }
+
+  // 2. Lifecycle Status Steps
+  const steps = container.querySelectorAll('.lifecycle-step');
+  steps.forEach(step => {
+    step.addEventListener('click', () => {
+      state.activeFilterStatus = step.getAttribute('data-status');
+      saveState();
+      renderGamificationPage(container, pageKey);
+    });
+  });
+
+  // 3. Open Create Challenge Modal
+  const createBtn = container.querySelector('#create-challenge-btn');
+  const createModal = container.querySelector('#create-challenge-modal');
+  if (createBtn && createModal) {
+    createBtn.addEventListener('click', () => {
+      createModal.classList.add('open');
+    });
+  }
+
+  // Close Create Challenge Modal
+  const closeCreate = container.querySelector('#close-create-modal');
+  const cancelCreate = container.querySelector('#cancel-create-modal');
+  if (createModal) {
+    const closeModal = () => createModal.classList.remove('open');
+    if (closeCreate) closeCreate.addEventListener('click', closeModal);
+    if (cancelCreate) cancelCreate.addEventListener('click', closeModal);
+  }
+
+  // Submit Create Challenge Form
+  const createForm = container.querySelector('#create-challenge-form');
+  if (createForm) {
+    createForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const title = container.querySelector('#c-title').value.trim();
+      const category = container.querySelector('#c-category').value;
+      const difficulty = container.querySelector('#c-difficulty').value;
+      const xp = parseInt(container.querySelector('#c-xp').value, 10);
+      const deadline = container.querySelector('#c-deadline').value;
+      const description = container.querySelector('#c-desc').value.trim();
+      const evidenceRequired = container.querySelector('#c-evidence').checked;
+      const status = container.querySelector('#c-status').value;
+
+      const newChallenge = {
+        id: 'c_' + Date.now(),
+        title,
+        category,
+        xp,
+        difficulty,
+        deadline,
+        description,
+        evidenceRequired,
+        status
+      };
+
+      state.challenges.push(newChallenge);
+      state.notifications.unshift({
+        id: 'notif_' + Date.now(),
+        text: `New challenge created: "${title}" (${status})`,
+        date: new Date().toISOString().split('T')[0],
+        type: 'info'
+      });
+
+      saveState();
+      createModal.classList.remove('open');
+      renderGamificationPage(container, pageKey);
+      showToast(`Challenge "${title}" created successfully!`);
+    });
+  }
+
+  // 4. Activate a Challenge
+  const activateBtns = container.querySelectorAll('.btn-activate-challenge');
+  activateBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.getAttribute('data-id');
+      const challenge = state.challenges.find(c => c.id === id);
+      if (challenge) {
+        challenge.status = 'Active';
+        state.notifications.unshift({
+          id: 'notif_' + Date.now(),
+          text: `Challenge "${challenge.title}" has been activated!`,
+          date: new Date().toISOString().split('T')[0],
+          type: 'info'
+        });
+        saveState();
+        renderGamificationPage(container, pageKey);
+        showToast(`Challenge "${challenge.title}" published and activated!`);
+      }
+    });
+  });
+
+  // 5. Join Challenge Button
+  const joinBtns = container.querySelectorAll('.btn-join-challenge');
+  joinBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.getAttribute('data-id');
+      const challenge = state.challenges.find(c => c.id === id);
+      if (challenge) {
+        // Add participation
+        const newPart = {
+          id: 'p_' + Date.now(),
+          challengeId: id,
+          employee: state.currentUser,
+          status: challenge.evidenceRequired ? 'Joined' : 'Approved', // Auto approve if no evidence required
+          proof: '',
+          xpAwarded: challenge.evidenceRequired ? 0 : challenge.xp
+        };
+
+        state.participations.push(newPart);
+
+        if (!challenge.evidenceRequired) {
+          // Immediately award points
+          state.employees[state.currentUser].xp += challenge.xp;
+          state.notifications.unshift({
+            id: 'notif_' + Date.now(),
+            text: `✅ ${state.currentUser} completed "${challenge.title}" (+${challenge.xp} XP)`,
+            date: new Date().toISOString().split('T')[0],
+            type: 'success'
+          });
+          const awards = checkAndAwardBadges(state.currentUser);
+          saveState();
+          renderGamificationPage(container, pageKey);
+          if (awards.length > 0) {
+            showToast(`Completed! Awarded ${challenge.xp} XP & unlocked ${awards.join(', ')}!`);
+          } else {
+            showToast(`Completed! Awarded ${challenge.xp} XP!`);
+          }
+        } else {
+          // Just joined
+          state.notifications.unshift({
+            id: 'notif_' + Date.now(),
+            text: `👤 ${state.currentUser} joined challenge "${challenge.title}"`,
+            date: new Date().toISOString().split('T')[0],
+            type: 'info'
+          });
+          checkAndAwardBadges(state.currentUser); // Check "Join 1 challenge" badge
+          saveState();
+          renderGamificationPage(container, pageKey);
+          showToast(`Successfully joined "${challenge.title}"!`);
+        }
+      }
+    });
+  });
+
+  // 6. Submit Evidence Modal Trigger
+  const submitTriggerBtns = container.querySelectorAll('.btn-submit-evidence-trigger');
+  const submitModal = container.querySelector('#submit-evidence-modal');
+  submitTriggerBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const id = btn.getAttribute('data-id');
+      const title = btn.getAttribute('data-title');
+      const xp = btn.getAttribute('data-xp');
+
+      container.querySelector('#submit-challenge-id').value = id;
+      container.querySelector('#submit-challenge-title').textContent = title;
+      container.querySelector('#submit-challenge-xp').textContent = xp + ' XP';
+      submitModal.classList.add('open');
+    });
+  });
+
+  // Close Submit Evidence Modal
+  const closeSubmit = container.querySelector('#close-submit-modal');
+  const cancelSubmit = container.querySelector('#cancel-submit-modal');
+  if (submitModal) {
+    const closeModal = () => submitModal.classList.remove('open');
+    if (closeSubmit) closeSubmit.addEventListener('click', closeModal);
+    if (cancelSubmit) cancelSubmit.addEventListener('click', closeModal);
+  }
+
+  // Submit Evidence Form
+  const submitForm = container.querySelector('#submit-evidence-form');
+  if (submitForm) {
+    submitForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const challengeId = container.querySelector('#submit-challenge-id').value;
+      const proofFile = container.querySelector('#evidence-file').value.trim();
+
+      const part = state.participations.find(p => p.challengeId === challengeId && p.employee === state.currentUser);
+      if (part) {
+        part.status = 'Pending';
+        part.proof = proofFile;
+
+        state.notifications.unshift({
+          id: 'notif_' + Date.now(),
+          text: `📄 ${state.currentUser} submitted proof for "${container.querySelector('#submit-challenge-title').textContent}"`,
+          date: new Date().toISOString().split('T')[0],
+          type: 'info'
+        });
+
+        saveState();
+        submitModal.classList.remove('open');
+        renderGamificationPage(container, pageKey);
+        showToast('Evidence submitted for review!');
+      }
+    });
+  }
+
+  // 7. Approve / Reject Submissions in Queue (Admin side)
+  const approveBtns = container.querySelectorAll('.btn-approve-submission');
+  approveBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const partId = btn.getAttribute('data-id');
+      const part = state.participations.find(p => p.id === partId);
+      if (part) {
+        const challenge = state.challenges.find(c => c.id === part.challengeId);
+        if (challenge) {
+          part.status = 'Approved';
+          part.xpAwarded = challenge.xp;
+
+          // Add XP to employee
+          if (state.employees[part.employee]) {
+            state.employees[part.employee].xp += challenge.xp;
+          }
+
+          state.notifications.unshift({
+            id: 'notif_' + Date.now(),
+            text: `✅ Admin approved ${part.employee}'s submission for "${challenge.title}" (+${challenge.xp} XP)`,
+            date: new Date().toISOString().split('T')[0],
+            type: 'success'
+          });
+
+          // Recalculate achievements
+          const awards = checkAndAwardBadges(part.employee);
+          
+          saveState();
+          renderGamificationPage(container, pageKey);
+
+          if (awards.length > 0) {
+            showToast(`Approved! ${part.employee} earned ${challenge.xp} XP & unlocked ${awards.join(', ')}!`);
+          } else {
+            showToast(`Submission approved and ${challenge.xp} XP awarded!`);
+          }
+        }
+      }
+    });
+  });
+
+  const rejectBtns = container.querySelectorAll('.btn-reject-submission');
+  rejectBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const partId = btn.getAttribute('data-id');
+      const part = state.participations.find(p => p.id === partId);
+      if (part) {
+        const challenge = state.challenges.find(c => c.id === part.challengeId);
+        part.status = 'Rejected';
+
+        state.notifications.unshift({
+          id: 'notif_' + Date.now(),
+          text: `❌ Admin rejected ${part.employee}'s submission for "${challenge ? challenge.title : 'Challenge'}"`,
+          date: new Date().toISOString().split('T')[0],
+          type: 'warning'
+        });
+
+        saveState();
+        renderGamificationPage(container, pageKey);
+        showToast('Submission rejected. Employee can resubmit.', 'warning');
+      }
+    });
+  });
+
+  // 8. Redeem Reward Button
+  const redeemBtns = container.querySelectorAll('.btn-redeem-reward');
+  redeemBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const rewardId = btn.getAttribute('data-id');
+      const reward = state.rewards.find(r => r.id === rewardId);
+      const points = state.employees[state.currentUser]?.xp || 0;
+
+      if (reward) {
+        if (reward.stock <= 0) {
+          showToast('Item is out of stock!', 'warning');
+          return;
+        }
+        if (points < reward.points) {
+          showToast('Insufficient points balance!', 'warning');
+          return;
+        }
+
+        // Deduct points, decrement stock
+        state.employees[state.currentUser].xp -= reward.points;
+        if (reward.stock < 9999) { // Don't decrement unlimited stock
+          reward.stock -= 1;
+        }
+
+        // Log redemption
+        state.redemptions.unshift({
+          id: 'red_' + Date.now(),
+          employee: state.currentUser,
+          rewardName: reward.name,
+          points: reward.points,
+          date: new Date().toISOString().split('T')[0]
+        });
+
+        state.notifications.unshift({
+          id: 'notif_' + Date.now(),
+          text: `🛍️ ${state.currentUser} redeemed "${reward.name}" (-${reward.points} Points)`,
+          date: new Date().toISOString().split('T')[0],
+          type: 'info'
+        });
+
+        saveState();
+        renderGamificationPage(container, pageKey);
+        showToast(`Redeemed "${reward.name}" successfully! -${reward.points} Points`);
+      }
+    });
+  });
+}
+
+// ----------------------------------------------------
+// Local CSS Stylesheet Rules (Glassmorphism & High-end dark theme)
+// ----------------------------------------------------
 function getGamificationCSS() {
   return `
+    /* Layout Header Widget */
+    .gamification-header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 20px;
+      margin-bottom: 24px;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 20px;
+    }
+    
+    @media (max-width: 900px) {
+      .gamification-header-row {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .simulated-user-widget {
+        width: 100%;
+      }
+    }
+
+    /* Active User Widget */
+    .simulated-user-widget {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      background: rgba(21, 26, 38, 0.7);
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: var(--radius-lg);
+      padding: 12px 18px;
+      min-width: 320px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+      position: relative;
+    }
+    
+    .active-user-avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--accent-gamification), #d97706);
+      color: var(--bg-primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 15px;
+      border: 2px solid rgba(255, 255, 255, 0.15);
+      box-shadow: 0 0 10px rgba(245, 158, 11, 0.2);
+    }
+    
+    .active-user-details {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    
+    .active-user-name {
+      font-family: var(--font-heading);
+      font-size: 15px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+    
+    .active-user-meta {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 11.5px;
+    }
+    
+    .active-user-dept {
+      color: var(--text-secondary);
+      max-width: 100px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    
+    .active-user-points {
+      color: var(--accent-gamification);
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      gap: 2px;
+    }
+    
+    .active-user-points i {
+      width: 11px;
+      height: 11px;
+    }
+    
+    .active-user-switcher {
+      border-left: 1px solid var(--border-color);
+      padding-left: 12px;
+      margin-left: 4px;
+    }
+    
+    .gamify-select {
+      background-color: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-sm);
+      color: var(--text-primary);
+      font-size: 11px;
+      font-weight: 600;
+      padding: 6px 10px;
+      outline: none;
+      cursor: pointer;
+      max-width: 130px;
+    }
+    
+    .gamify-select:focus {
+      border-color: var(--accent-gamification);
+    }
+
+    /* Connected Sub Nav Tabs */
+    .sub-nav-tabs {
+      display: flex;
+      gap: 2px;
+      background-color: rgba(0,0,0,0.2);
+      padding: 4px;
+      border-radius: var(--radius-md);
+      margin-bottom: 24px;
+      border: 1px solid var(--border-color);
+      width: 100%;
+      overflow-x: auto;
+    }
+    
+    .sub-nav-tab {
+      flex: 1;
+      text-align: center;
+      padding: 10px 16px;
+      text-decoration: none;
+      color: var(--text-secondary);
+      font-family: var(--font-heading);
+      font-weight: 600;
+      font-size: 13.5px;
+      border-radius: var(--radius-sm);
+      transition: all var(--transition-fast);
+      white-space: nowrap;
+      min-width: 110px;
+    }
+    
+    .sub-nav-tab:hover {
+      color: var(--text-primary);
+      background-color: rgba(255,255,255,0.03);
+    }
+    
+    .sub-nav-tab.active {
+      background-color: var(--accent-gamification);
+      color: var(--bg-primary);
+      box-shadow: 0 2px 8px rgba(245, 158, 11, 0.25);
+    }
+
     /* Actions and Table */
     .table-actions {
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 16px;
-      margin-bottom: 16px;
+      margin-bottom: 24px;
       margin-top: 8px;
     }
-    .filters-row {
-      flex: 1;
+    
+    @media (max-width: 768px) {
+      .table-actions {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .table-actions button {
+        width: 100%;
+        justify-content: center;
+      }
     }
-    .filter-dropdown {
-      background-color: var(--bg-card);
-      border: 1px solid var(--border-color);
+
+    /* Lifecycle pipeline bar */
+    .lifecycle-bar {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background-color: rgba(21, 26, 38, 0.4);
+      padding: 8px 12px;
       border-radius: var(--radius-md);
-      padding: 10px 16px;
-      color: var(--text-primary);
-      font-size: 14px;
+      border: 1px solid var(--border-color);
+      overflow-x: auto;
+      max-width: 100%;
     }
+    
+    .lifecycle-step {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      background: none;
+      border: 1px solid transparent;
+      border-radius: var(--radius-sm);
+      color: var(--text-secondary);
+      font-family: var(--font-heading);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all var(--transition-fast);
+      white-space: nowrap;
+    }
+    
+    .lifecycle-step:hover {
+      color: var(--text-primary);
+      background-color: rgba(255,255,255,0.03);
+    }
+    
+    .lifecycle-step.active {
+      color: white;
+      border-color: rgba(255,255,255,0.1);
+      background-color: rgba(255,255,255,0.05);
+    }
+    
+    .lifecycle-step.active[data-status="Active"] {
+      border-color: rgba(16, 185, 129, 0.3);
+      background-color: rgba(16, 185, 129, 0.1);
+      color: var(--accent-success);
+    }
+    
+    .lifecycle-step.active[data-status="Under Review"] {
+      border-color: rgba(139, 92, 246, 0.3);
+      background-color: rgba(139, 92, 246, 0.1);
+      color: var(--accent-warning);
+    }
+    
+    .lifecycle-step.active[data-status="Completed"] {
+      border-color: rgba(59, 130, 246, 0.3);
+      background-color: rgba(59, 130, 246, 0.1);
+      color: var(--accent-info);
+    }
+    
+    .lifecycle-step.active[data-status="Draft"] {
+      border-color: rgba(255, 255, 255, 0.2);
+      background-color: rgba(255,255,255,0.08);
+      color: var(--text-primary);
+    }
+
+    .step-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+    
+    .color-draft { background-color: var(--text-secondary); }
+    .color-active { background-color: var(--accent-success); }
+    .color-under-review { background-color: var(--accent-warning); }
+    .color-completed { background-color: var(--accent-info); }
+    .color-archived { background-color: var(--text-muted); }
+
+    .step-connector {
+      color: var(--text-muted);
+      font-size: 11px;
+      padding: 0 2px;
+      user-select: none;
+    }
+
     .btn {
       display: inline-flex;
       align-items: center;
@@ -376,268 +1461,297 @@ function getGamificationCSS() {
       font-weight: 600;
       font-size: 13.5px;
       cursor: pointer;
-      transition: background-color var(--transition-fast);
+      transition: background-color var(--transition-fast), transform var(--transition-fast);
       color: white;
     }
+    
+    .btn:hover {
+      transform: translateY(-1px);
+    }
+    
+    .btn:active {
+      transform: translateY(0);
+    }
+    
     .btn-gamify {
       background-color: var(--accent-gamification);
       color: var(--bg-primary);
     }
+    
     .btn-gamify:hover {
       background-color: #d97706;
     }
+    
+    .btn-warning {
+      background-color: rgba(245, 158, 11, 0.15);
+      color: var(--accent-gamification);
+      border: 1px solid rgba(245, 158, 11, 0.3);
+    }
+    .btn-warning:hover {
+      background-color: rgba(245, 158, 11, 0.25);
+    }
+    
+    .btn-secondary {
+      background-color: rgba(255,255,255,0.05);
+      color: var(--text-primary);
+      border: 1px solid var(--border-color);
+    }
+    
+    .btn-secondary:hover {
+      background-color: rgba(255,255,255,0.1);
+    }
+    
+    .btn-success-active {
+      background-color: rgba(16, 185, 129, 0.1);
+      color: var(--accent-success);
+      border: 1px solid rgba(16, 185, 129, 0.2);
+    }
+    
+    .btn-danger {
+      background-color: rgba(239, 68, 68, 0.15);
+      color: var(--accent-danger);
+      border: 1px solid rgba(239, 68, 68, 0.3);
+    }
+    .btn-danger:hover {
+      background-color: rgba(239, 68, 68, 0.25);
+    }
+
     .full-width {
       width: 100%;
       justify-content: center;
     }
+    
+    .text-center { text-align: center; }
 
     /* Challenge card */
     .challenge-card {
       display: flex;
       flex-direction: column;
       gap: 16px;
+      background: rgba(21, 26, 38, 0.4);
+      border: 1px solid var(--border-color);
     }
+    
     .c-card-header {
       display: flex;
       justify-content: space-between;
       align-items: center;
     }
+    
     .difficulty-tag {
       font-size: 10px;
       font-weight: 700;
-      padding: 2px 8px;
+      padding: 3px 8px;
       border-radius: var(--radius-sm);
       text-transform: uppercase;
+      letter-spacing: 0.5px;
     }
-    .diff-easy { background-color: rgba(16, 185, 129, 0.15); color: var(--accent-success); }
-    .diff-medium { background-color: rgba(59, 130, 246, 0.15); color: var(--accent-info); }
-    .diff-hard { background-color: rgba(239, 68, 68, 0.15); color: var(--accent-danger); }
     
+    .diff-easy { background-color: rgba(16, 185, 129, 0.15); color: var(--accent-success); border: 1px solid rgba(16, 185, 129, 0.2); }
+    .diff-medium { background-color: rgba(59, 130, 246, 0.15); color: var(--accent-info); border: 1px solid rgba(59, 130, 246, 0.2); }
+    .diff-hard { background-color: rgba(239, 68, 68, 0.15); color: var(--accent-danger); border: 1px solid rgba(239, 68, 68, 0.2); }
+    .diff-gamify { background-color: rgba(245, 158, 11, 0.15); color: var(--accent-gamification); border: 1px solid rgba(245, 158, 11, 0.2); }
+
     .points-badge {
-      background-color: rgba(245, 158, 11, 0.15);
+      background-color: rgba(245, 158, 11, 0.12);
       color: var(--accent-gamification);
-      padding: 4px 10px;
+      padding: 4px 12px;
       border-radius: var(--radius-full);
       font-size: 11px;
       font-weight: 700;
       border: 1px solid rgba(245, 158, 11, 0.2);
     }
+    
     .badge-green {
-      background-color: rgba(16, 185, 129, 0.15);
+      background-color: rgba(16, 185, 129, 0.12);
       color: var(--accent-success);
-      border-color: rgba(16, 185, 129, 0.2);
+      border: 1px solid rgba(16, 185, 129, 0.2);
     }
+    
     .challenge-title {
       font-family: var(--font-heading);
-      font-size: 17px;
+      font-size: 18px;
       font-weight: 600;
+      color: var(--text-primary);
     }
+    
     .challenge-desc {
       font-size: 13.5px;
       color: var(--text-secondary);
       line-height: 1.5;
       flex-grow: 1;
     }
+    
     .challenge-meta {
       display: flex;
-      justify-content: space-between;
-      font-size: 11px;
-      color: var(--text-muted);
-      border-top: 1px solid var(--border-color);
-      padding-top: 10px;
-    }
-
-    /* Stat Box border info */
-    .stat-box {
-      padding: 20px;
-      display: flex;
       flex-direction: column;
-      gap: 6px;
-    }
-    .stat-lbl {
-      font-size: 12px;
-      color: var(--text-secondary);
-    }
-    .stat-box h3 {
-      font-family: var(--font-heading);
-      font-size: 24px;
-      font-weight: 700;
-    }
-    .border-gamify {
-      border-color: rgba(245, 158, 11, 0.2);
-    }
-
-    /* Submissions review table */
-    .data-table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-    .data-table th, .data-table td {
-      padding: 14px 16px;
-      border-bottom: 1px solid var(--border-color);
-      font-size: 14px;
-    }
-    .data-table th {
-      color: var(--text-secondary);
-      font-weight: 600;
-      font-size: 12px;
-      text-transform: uppercase;
-    }
-    .proof-link {
-      color: var(--accent-gamification);
-      text-decoration: none;
-      font-weight: 500;
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-    }
-    .proof-link:hover {
-      text-decoration: underline;
-    }
-    .action-buttons-group {
-      display: flex;
-      gap: 6px;
-    }
-    .action-btn-mini {
-      width: 28px;
-      height: 28px;
-      border-radius: var(--radius-sm);
-      border: none;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      cursor: pointer;
-      color: white;
-    }
-    .btn-approve {
-      background-color: var(--accent-success);
-    }
-    .btn-approve:hover { background-color: #059669; }
-    .btn-reject {
-      background-color: var(--accent-danger);
-    }
-    .btn-reject:hover { background-color: #dc2626; }
-    .verified-text {
-      color: var(--accent-success);
-      font-size: 13px;
-      font-weight: 600;
-      display: inline-flex;
-      align-items: center;
       gap: 4px;
-    }
-    .verified-text i {
-      width: 14px;
-      height: 14px;
-    }
-
-    /* Badge Grid */
-    .badge-gallery-card {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      text-align: center;
-      gap: 12px;
-    }
-    .badge-icon-large {
-      font-size: 42px;
-      height: 70px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-    }
-    .badge-gallery-card.locked {
-      opacity: 0.4;
-    }
-    .badge-gallery-card.locked .badge-icon-large {
-      filter: grayscale(100%);
-    }
-    .badge-gallery-card h4 {
-      font-family: var(--font-heading);
-      font-size: 15px;
-      font-weight: 600;
-    }
-    .badge-gallery-card p {
-      font-size: 12.5px;
-      color: var(--text-secondary);
-      line-height: 1.4;
-      flex-grow: 1;
-    }
-    .badge-rule {
-      font-size: 11px;
+      font-size: 11.5px;
       color: var(--text-muted);
-      background-color: rgba(0,0,0,0.15);
-      padding: 2px 8px;
-      border-radius: var(--radius-sm);
-    }
-    .badge-status-tag {
-      font-size: 11px;
-      font-weight: 700;
-    }
-    .unlocked .badge-status-tag {
-      color: var(--accent-success);
-    }
-    .locked .badge-status-tag {
-      color: var(--text-muted);
-    }
-
-    /* Reward card */
-    .reward-store-card {
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-      padding: 0;
-    }
-    .reward-media {
-      height: 140px;
-      background-color: rgba(255, 255, 255, 0.02);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 64px;
-      border-bottom: 1px solid var(--border-color);
-    }
-    .reward-body {
-      padding: 20px;
-      display: flex;
-      flex-direction: column;
-      gap: 12px;
-      flex-grow: 1;
-    }
-    .reward-cost {
-      background-color: rgba(245, 158, 11, 0.15);
-      color: var(--accent-gamification);
-      font-size: 11px;
-      font-weight: 700;
-      align-self: flex-start;
-      padding: 2px 8px;
-      border-radius: var(--radius-sm);
-    }
-    .reward-body h4 {
-      font-family: var(--font-heading);
-      font-size: 15px;
-      font-weight: 600;
-    }
-    .reward-body p {
-      font-size: 13px;
-      color: var(--text-secondary);
-      line-height: 1.4;
-      flex-grow: 1;
-    }
-    .reward-stock-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
       border-top: 1px solid var(--border-color);
       padding-top: 12px;
     }
-    .stock-count {
-      font-size: 12px;
-      color: var(--text-muted);
-      font-weight: 500;
+    
+    .challenge-card-footer {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      margin-top: auto;
     }
 
-    /* Leaderboard CSS */
+    .status-pill {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: var(--radius-full);
+      display: inline-block;
+    }
+    .state-draft { background-color: rgba(255, 255, 255, 0.05); color: var(--text-secondary); }
+    .state-active { background-color: rgba(16, 185, 129, 0.1); color: var(--accent-success); }
+    .state-joined { background-color: rgba(59, 130, 246, 0.1); color: var(--accent-info); }
+    .state-under-review { background-color: rgba(139, 92, 246, 0.1); color: var(--accent-warning); }
+    .state-approved { background-color: rgba(16, 185, 129, 0.15); color: var(--accent-success); }
+    .state-rejected { background-color: rgba(239, 68, 68, 0.15); color: var(--accent-danger); }
+    .state-completed { background-color: rgba(59, 130, 246, 0.1); color: var(--accent-info); }
+    .state-archived { background-color: rgba(0, 0, 0, 0.2); color: var(--text-muted); }
+
+    /* Dashboard Two-Column Row */
+    .challenges-dashboard-row {
+      display: grid;
+      grid-template-columns: 1.3fr 0.9fr;
+      gap: 20px;
+      margin-top: 32px;
+    }
+    
+    @media (max-width: 950px) {
+      .challenges-dashboard-row {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .card-header-with-icon {
+      margin-bottom: 20px;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 12px;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    
+    .card-header-with-icon h3 {
+      font-family: var(--font-heading);
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+    
+    .card-header-subtitle {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    /* Dashboard Badges List */
+    .dashboard-badge-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      max-height: 400px;
+      overflow-y: auto;
+      padding-right: 6px;
+    }
+    
+    .dashboard-badge-grid::-webkit-scrollbar {
+      width: 4px;
+    }
+    .dashboard-badge-grid::-webkit-scrollbar-thumb {
+      background-color: rgba(255, 255, 255, 0.05);
+      border-radius: var(--radius-full);
+    }
+
+    .mini-badge-card {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      padding: 10px 14px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--border-color);
+      background-color: rgba(255, 255, 255, 0.01);
+      transition: all var(--transition-fast);
+    }
+    
+    .mini-badge-card.unlocked {
+      background-color: rgba(16, 185, 129, 0.02);
+      border-color: rgba(16, 185, 129, 0.15);
+    }
+    
+    .mini-badge-card.locked {
+      opacity: 0.55;
+    }
+    
+    .mini-badge-icon {
+      font-size: 28px;
+      width: 40px;
+      height: 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: rgba(0,0,0,0.2);
+      border-radius: var(--radius-sm);
+    }
+    
+    .mini-badge-details {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    
+    .mini-badge-details h4 {
+      font-family: var(--font-heading);
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+    
+    .mini-badge-details p {
+      font-size: 11.5px;
+      color: var(--text-secondary);
+      line-height: 1.3;
+    }
+    
+    .mini-badge-rule {
+      font-size: 10px;
+      color: var(--text-muted);
+      font-style: italic;
+    }
+    
+    .mini-badge-status {
+      font-size: 11px;
+      font-weight: 700;
+    }
+    
+    .status-text-unlocked { color: var(--accent-success); display: inline-flex; align-items: center; gap: 4px; }
+    .status-text-unlocked i { width: 12px; height: 12px; }
+    .status-text-locked { color: var(--text-muted); display: inline-flex; align-items: center; gap: 4px; }
+    .status-text-locked i { width: 12px; height: 12px; }
+
+    /* Mini Leaderboard List */
+    .mini-leaderboard-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+    
+    .mini-leaderboard-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      background-color: rgba(255,255,255,0.01);
+    }
+    
     .leaderboard-rank {
       width: 24px;
       height: 24px;
@@ -646,11 +1760,14 @@ function getGamificationCSS() {
       align-items: center;
       justify-content: center;
       font-weight: 700;
-      font-size: 12px;
+      font-size: 11.5px;
+      font-family: var(--font-heading);
     }
+    
     .rank-1 { background-color: rgba(245, 158, 11, 0.15); color: var(--accent-gamification); border: 1px solid rgba(245, 158, 11, 0.3); }
-    .rank-2 { background-color: rgba(255, 255, 255, 0.1); color: var(--text-primary); }
-    .rank-3 { background-color: rgba(255, 255, 255, 0.05); color: var(--text-secondary); }
+    .rank-2 { background-color: rgba(156, 163, 175, 0.15); color: var(--text-secondary); border: 1px solid rgba(156, 163, 175, 0.3); }
+    .rank-3 { background-color: rgba(217, 119, 6, 0.15); color: #d97706; border: 1px solid rgba(217, 119, 6, 0.3); }
+
     .user-avatar-small {
       width: 32px;
       height: 32px;
@@ -662,34 +1779,624 @@ function getGamificationCSS() {
       justify-content: center;
       font-size: 11px;
       font-weight: 600;
+      color: var(--text-primary);
     }
+    
+    .leaderboard-item-details {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 1px;
+    }
+    
+    .leaderboard-item-details strong {
+      font-size: 13px;
+      color: var(--text-primary);
+    }
+    
+    .dept-text {
+      font-size: 10.5px;
+      color: var(--text-muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 140px;
+    }
+    
+    .leaderboard-item-xp {
+      font-size: 12px;
+      font-weight: 700;
+      color: var(--accent-gamification);
+    }
+
+    /* Stat Box border info */
+    .stat-box {
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      background: rgba(21, 26, 38, 0.5);
+    }
+    
+    .stat-lbl {
+      font-size: 12px;
+      color: var(--text-secondary);
+    }
+    
+    .stat-box h3 {
+      font-family: var(--font-heading);
+      font-size: 26px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+    
+    .border-gamify {
+      border-color: rgba(245, 158, 11, 0.25);
+    }
+
+    /* Submissions review table */
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    
+    .data-table th, .data-table td {
+      padding: 14px 16px;
+      border-bottom: 1px solid var(--border-color);
+      font-size: 13.5px;
+      text-align: left;
+    }
+    
+    .data-table th {
+      color: var(--text-muted);
+      font-weight: 600;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .proof-link {
+      color: var(--accent-gamification);
+      text-decoration: none;
+      font-weight: 500;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    
+    .proof-link:hover {
+      text-decoration: underline;
+    }
+    
+    .action-buttons-group {
+      display: flex;
+      gap: 8px;
+    }
+    
+    .action-btn-mini {
+      width: 30px;
+      height: 30px;
+      border-radius: var(--radius-sm);
+      border: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      color: white;
+      transition: background-color var(--transition-fast);
+    }
+    
+    .action-btn-mini i {
+      width: 15px;
+      height: 15px;
+    }
+    
+    .btn-approve {
+      background-color: var(--accent-success);
+    }
+    .btn-approve:hover { background-color: #059669; }
+    
+    .btn-reject {
+      background-color: var(--accent-danger);
+    }
+    .btn-reject:hover { background-color: #dc2626; }
+    
+    .deducted-points {
+      color: var(--accent-danger);
+      font-weight: 700;
+    }
+
+    /* Notification log list */
+    .notification-log-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-height: 250px;
+      overflow-y: auto;
+    }
+    
+    .notif-log-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 10px 14px;
+      background-color: rgba(255,255,255,0.01);
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-color);
+      font-size: 13px;
+    }
+    
+    .notif-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+    }
+    
+    .notif-type-success .notif-dot { background-color: var(--accent-success); }
+    .notif-type-info .notif-dot { background-color: var(--accent-gamification); }
+    .notif-type-warning .notif-dot { background-color: var(--accent-danger); }
+    .notif-type-badge .notif-dot { background-color: var(--accent-warning); }
+
+    .notif-text {
+      flex: 1;
+      color: var(--text-primary);
+    }
+    
+    .notif-date {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    /* Badge Summary Header */
+    .badge-summary-header {
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 20px 24px;
+      margin-bottom: 24px;
+    }
+    
+    .badge-stats-row {
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      font-size: 14px;
+      font-weight: 600;
+    }
+    
+    .progress-bar-container {
+      flex: 1;
+      height: 8px;
+      background-color: rgba(255,255,255,0.05);
+      border-radius: var(--radius-full);
+      overflow: hidden;
+    }
+    
+    .progress-bar-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent-gamification), var(--accent-success));
+      border-radius: var(--radius-full);
+      transition: width 0.4s ease-out;
+    }
+
+    /* Full Badge Card */
+    .badge-gallery-card {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      gap: 12px;
+      background-color: rgba(21, 26, 38, 0.4);
+    }
+    
+    .badge-gallery-card.locked {
+      opacity: 0.45;
+    }
+    
+    .badge-gallery-card.locked .badge-icon-large {
+      filter: grayscale(100%) blur(0.5px);
+    }
+    
+    .badge-icon-large {
+      font-size: 48px;
+      width: 80px;
+      height: 80px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: rgba(0,0,0,0.25);
+      border-radius: 50%;
+      border: 1px solid var(--border-color);
+    }
+    
+    .badge-gallery-card h4 {
+      font-family: var(--font-heading);
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+    
+    .badge-gallery-card p {
+      font-size: 12.5px;
+      color: var(--text-secondary);
+      line-height: 1.4;
+      flex-grow: 1;
+    }
+    
+    .badge-rule {
+      font-size: 11px;
+      color: var(--text-muted);
+      background-color: rgba(0,0,0,0.2);
+      padding: 3px 10px;
+      border-radius: var(--radius-sm);
+      border: 1px solid var(--border-color);
+    }
+    
+    .badge-status-tag {
+      font-size: 11px;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    
+    .unlocked .badge-status-tag { color: var(--accent-success); }
+    .locked .badge-status-tag { color: var(--text-muted); }
+    .badge-status-tag i { width: 12px; height: 12px; }
+
+    /* Rewards Balance header */
+    .rewards-balance-header {
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 16px 24px;
+      margin-bottom: 24px;
+      display: flex;
+      justify-content: flex-start;
+    }
+    
+    .balance-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 14px;
+      background-color: rgba(245, 158, 11, 0.08);
+      border: 1px solid rgba(245, 158, 11, 0.2);
+      border-radius: var(--radius-md);
+      padding: 10px 16px;
+    }
+    
+    .balance-lbl {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-secondary);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .balance-lbl i { width: 14px; height: 14px; color: var(--accent-gamification); }
+    
+    .balance-amount {
+      font-size: 18px;
+      font-weight: 800;
+      color: var(--accent-gamification);
+      font-family: var(--font-heading);
+    }
+
+    /* Reward card */
+    .reward-store-card {
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      padding: 0;
+      background: rgba(21, 26, 38, 0.4);
+      border: 1px solid var(--border-color);
+    }
+    
+    .reward-media {
+      height: 150px;
+      background-color: rgba(0, 0, 0, 0.15);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 64px;
+      border-bottom: 1px solid var(--border-color);
+      user-select: none;
+    }
+    
+    .reward-body {
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      flex-grow: 1;
+    }
+    
+    .reward-cost {
+      background-color: rgba(245, 158, 11, 0.12);
+      color: var(--accent-gamification);
+      font-size: 11px;
+      font-weight: 700;
+      align-self: flex-start;
+      padding: 3px 10px;
+      border-radius: var(--radius-sm);
+      border: 1px solid rgba(245, 158, 11, 0.2);
+    }
+    
+    .reward-body h4 {
+      font-family: var(--font-heading);
+      font-size: 16px;
+      font-weight: 600;
+      color: var(--text-primary);
+    }
+    
+    .reward-body p {
+      font-size: 13px;
+      color: var(--text-secondary);
+      line-height: 1.45;
+      flex-grow: 1;
+    }
+    
+    .reward-stock-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      border-top: 1px solid var(--border-color);
+      padding-top: 14px;
+      margin-top: auto;
+    }
+    
+    .stock-count {
+      font-size: 12.5px;
+      color: var(--text-muted);
+      font-weight: 500;
+    }
+
+    /* Leaderboard CSS List details */
     .list-container {
       display: flex;
       flex-direction: column;
       gap: 12px;
     }
+    
     .list-item {
       display: flex;
       align-items: center;
-      gap: 12px;
-      padding: 12px;
-      background: rgba(255, 255, 255, 0.02);
+      gap: 14px;
+      padding: 12px 16px;
+      background: rgba(255, 255, 255, 0.01);
       border-radius: var(--radius-md);
       border: 1px solid var(--border-color);
+      transition: border-color var(--transition-fast);
     }
+    
+    .list-item:hover {
+      border-color: var(--border-hover);
+    }
+    
     .item-info {
       flex: 1;
       display: flex;
       flex-direction: column;
-      gap: 2px;
+      gap: 3px;
     }
+    
     .item-info strong {
-      font-size: 14px;
+      font-size: 14.5px;
       color: var(--text-primary);
     }
+    
     .item-sub {
-      font-size: 12px;
+      font-size: 11.5px;
       color: var(--text-secondary);
     }
+
+    /* Premium Custom CSS Modals */
+    .gamify-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background-color: rgba(5, 7, 12, 0.85);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 1000;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.25s ease;
+    }
+    
+    .gamify-modal.open {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    
+    .gamify-modal-content {
+      background-color: var(--bg-card);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: var(--radius-lg);
+      width: 100%;
+      max-width: 500px;
+      padding: 24px;
+      box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+      transform: scale(0.95);
+      transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    
+    .gamify-modal.open .gamify-modal-content {
+      transform: scale(1);
+    }
+    
+    .gamify-modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 12px;
+    }
+    
+    .gamify-modal-header h3 {
+      font-family: var(--font-heading);
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--text-primary);
+    }
+    
+    .close-modal-btn {
+      background: none;
+      border: none;
+      font-size: 24px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      line-height: 1;
+    }
+    .close-modal-btn:hover { color: var(--text-primary); }
+    
+    .gamify-form {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    
+    .form-group label {
+      font-size: 11.5px;
+      color: var(--text-secondary);
+      font-weight: 600;
+    }
+    
+    .gamify-form input[type="text"],
+    .gamify-form input[type="number"],
+    .gamify-form input[type="date"],
+    .gamify-form select,
+    .gamify-form textarea {
+      background-color: var(--bg-secondary);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 10px 14px;
+      color: var(--text-primary);
+      font-size: 13.5px;
+      outline: none;
+      font-family: var(--font-body);
+      width: 100%;
+    }
+    
+    .gamify-form input:focus,
+    .gamify-form select:focus,
+    .gamify-form textarea:focus {
+      border-color: var(--accent-gamification);
+      box-shadow: 0 0 0 2px rgba(245, 158, 11, 0.15);
+    }
+    
+    .form-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+    }
+    
+    .checkbox-row {
+      display: flex;
+      align-items: center;
+      padding: 4px 0;
+    }
+    
+    .checkbox-lbl {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12.5px;
+      color: var(--text-secondary);
+      cursor: pointer;
+      user-select: none;
+    }
+    .checkbox-lbl input {
+      width: 16px;
+      height: 16px;
+      accent-color: var(--accent-gamification);
+    }
+
+    .form-actions {
+      display: flex;
+      justify-content: flex-end;
+      gap: 12px;
+      margin-top: 10px;
+    }
+    
+    .challenge-submit-info {
+      background-color: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 12px;
+      font-size: 13px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    /* Elegant CSS Toast Notifications */
+    .toast-container {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      z-index: 1050;
+      pointer-events: none;
+    }
+    
+    .toast {
+      background-color: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-md);
+      padding: 12px 18px;
+      min-width: 280px;
+      max-width: 400px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      box-shadow: var(--shadow-lg);
+      transform: translateX(100%);
+      opacity: 0;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      pointer-events: auto;
+    }
+    
+    .toast.visible {
+      transform: translateX(0);
+      opacity: 1;
+    }
+    
+    .toast-message {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text-primary);
+      line-height: 1.4;
+    }
+    
+    .toast-close {
+      background: none;
+      border: none;
+      color: var(--text-secondary);
+      font-size: 18px;
+      cursor: pointer;
+      line-height: 1;
+    }
+    .toast-close:hover { color: var(--text-primary); }
+    
+    .toast-success { border-left: 4px solid var(--accent-success); }
+    .toast-warning { border-left: 4px solid var(--accent-danger); }
+    .toast-info { border-left: 4px solid var(--accent-gamification); }
   `;
 }
