@@ -18,198 +18,28 @@
   <script src="https://unpkg.com/lucide@latest"></script>
 </head>
 <body>
-  <div class="app-container">
-    <!-- Mobile Navigation Toggle -->
-    <button class="mobile-nav-toggle" id="mobile-nav-toggle" aria-label="Toggle Navigation">
-      <i data-lucide="menu"></i>
-    </button>
-
-    <!-- Sidebar Navigation (Collapsed by Default) -->
-    <aside class="app-sidebar collapsed" id="app-sidebar">
-      <div class="sidebar-header">
-        <div class="logo-wrapper">
-          <div class="logo-icon">🌱</div>
-          <span class="logo-text">EcoSphere</span>
-        </div>
-        <button class="sidebar-toggle-btn" id="sidebar-toggle-btn" aria-label="Toggle Sidebar">
-          <i data-lucide="chevron-right"></i>
-        </button>
+  <div class="app-container app-container-horizontal">
+    <!-- Sleek, edge-to-edge dark horizontal top header bar -->
+    <header class="app-top-nav-bar">
+      <div class="nav-logo-wrapper">
+        <div class="logo-icon">🌱</div>
+        <span class="logo-text">EcoSphere</span>
       </div>
-
-      <nav class="sidebar-nav" id="sidebar-nav">
-        <!-- Environmental Sub-menu -->
-        <div class="sidebar-sub-menu" id="menu-environmental">
-          <div class="menu-category-header environmental-text">Environmental</div>
-          <a href="#environmental/emission-factors" class="nav-link" id="link-emission-factors" title="Emission Factors">
-            <i data-lucide="calculator"></i>
-            <span class="link-label">Emission Factors</span>
-          </a>
-          <a href="#environmental/product-esg-profiles" class="nav-link" id="link-product-esg-profiles" title="Product ESG Profiles">
-            <i data-lucide="package"></i>
-            <span class="link-label">Product ESG Profiles</span>
-          </a>
-          <a href="#environmental/carbon-transactions" class="nav-link" id="link-carbon-transactions" title="Carbon Transactions">
-            <i data-lucide="activity"></i>
-            <span class="link-label">Carbon Transactions</span>
-          </a>
-          <a href="#environmental/goals" class="nav-link" id="link-goals" title="Environmental Goals">
-            <i data-lucide="target"></i>
-            <span class="link-label">Environmental Goals</span>
-          </a>
-        </div>
-        
-        <!-- Social Sub-menu -->
-        <div class="sidebar-sub-menu" id="menu-social">
-          <div class="menu-category-header social-text">Social</div>
-          <a href="#social/csr-activities" class="nav-link" id="link-csr-activities" title="CSR Activities">
-            <i data-lucide="heart-handshake"></i>
-            <span class="link-label">CSR Activities</span>
-          </a>
-          <a href="#social/employee-participation" class="nav-link" id="link-employee-participation" title="Employee Participation">
-            <i data-lucide="user-check"></i>
-            <span class="link-label">Employee Participation</span>
-          </a>
-          <a href="#social/diversity-dashboard" class="nav-link" id="link-diversity-dashboard" title="Diversity Dashboard">
-            <i data-lucide="users"></i>
-            <span class="link-label">Diversity Dashboard</span>
-          </a>
-        </div>
-        
-        <!-- Governance Sub-menu -->
-        <div class="sidebar-sub-menu" id="menu-governance">
-          <div class="menu-category-header governance-text">Governance</div>
-          <a href="#governance/policies" class="nav-link" id="link-policies" title="Policies">
-            <i data-lucide="file-text"></i>
-            <span class="link-label">Policies</span>
-          </a>
-          <a href="#governance/policy-acknowledgements" class="nav-link" id="link-policy-acknowledgements" title="Policy Acknowledgements">
-            <i data-lucide="signature"></i>
-            <span class="link-label">Policy Acknowledgements</span>
-          </a>
-          <a href="#governance/audits" class="nav-link" id="link-audits" title="Audits">
-            <i data-lucide="clipboard-check"></i>
-            <span class="link-label">Audits</span>
-          </a>
-          <a href="#governance/compliance-issues" class="nav-link" id="link-compliance-issues" title="Compliance Issues">
-            <i data-lucide="alert-octagon"></i>
-            <span class="link-label">Compliance Issues</span>
-          </a>
-        </div>
-        
-        <!-- Gamification Sub-menu -->
-        <div class="sidebar-sub-menu" id="menu-gamification">
-          <div class="menu-category-header gamification-text">Gamification</div>
-          <a href="#gamification/challenges" class="nav-link" id="link-challenges" title="Challenges">
-            <i data-lucide="flame"></i>
-            <span class="link-label">Challenges</span>
-          </a>
-          <a href="#gamification/challenge-participation" class="nav-link" id="link-challenge-participation" title="Challenge Participation">
-            <i data-lucide="award"></i>
-            <span class="link-label">Challenge Participation</span>
-          </a>
-          <a href="#gamification/badges" class="nav-link" id="link-badges" title="Badges">
-            <i data-lucide="shield"></i>
-            <span class="link-label">Badges</span>
-          </a>
-          <a href="#gamification/rewards" class="nav-link" id="link-rewards" title="Rewards">
-            <i data-lucide="gift"></i>
-            <span class="link-label">Rewards</span>
-          </a>
-          <a href="#gamification/leaderboard" class="nav-link" id="link-leaderboard" title="Leaderboard">
-            <i data-lucide="trophy"></i>
-            <span class="link-label">Leaderboard</span>
-          </a>
-        </div>
-        
-        <!-- Reports Sub-menu -->
-        <div class="sidebar-sub-menu" id="menu-reports">
-          <div class="menu-category-header reports-text">Reports</div>
-          <a href="#reports/environmental-report" class="nav-link" id="link-environmental-report" title="Environmental Report">
-            <i data-lucide="bar-chart-3"></i>
-            <span class="link-label">Environmental Report</span>
-          </a>
-          <a href="#reports/social-report" class="nav-link" id="link-social-report" title="Social Report">
-            <i data-lucide="users-2"></i>
-            <span class="link-label">Social Report</span>
-          </a>
-          <a href="#reports/governance-report" class="nav-link" id="link-governance-report" title="Governance Report">
-            <i data-lucide="shield-alert"></i>
-            <span class="link-label">Governance Report</span>
-          </a>
-          <a href="#reports/esg-summary" class="nav-link" id="link-esg-summary" title="ESG Summary">
-            <i data-lucide="pie-chart"></i>
-            <span class="link-label">ESG Summary</span>
-          </a>
-          <a href="#reports/custom-report-builder" class="nav-link" id="link-custom-report-builder" title="Custom Report Builder">
-            <i data-lucide="settings-2"></i>
-            <span class="link-label">Custom Report Builder</span>
-          </a>
-        </div>
-        
-        <!-- Settings Sub-menu -->
-        <div class="sidebar-sub-menu" id="menu-settings">
-          <div class="menu-category-header settings-text">Settings</div>
-          <a href="#settings/departments" class="nav-link" id="link-departments" title="Departments">
-            <i data-lucide="building"></i>
-            <span class="link-label">Departments</span>
-          </a>
-          <a href="#settings/categories" class="nav-link" id="link-categories" title="Categories">
-            <i data-lucide="tags"></i>
-            <span class="link-label">Categories</span>
-          </a>
-          <a href="#settings/esg-configuration" class="nav-link" id="link-esg-configuration" title="ESG Configuration">
-            <i data-lucide="sliders"></i>
-            <span class="link-label">ESG Configuration</span>
-          </a>
-          <a href="#settings/notification-settings" class="nav-link" id="link-notification-settings" title="Notification Settings">
-            <i data-lucide="bell-ring"></i>
-            <span class="link-label">Notification Settings</span>
-          </a>
-        </div>
+      <nav class="horizontal-nav">
+        <a href="#dashboard" class="nav-link-horizontal" id="link-dashboard">Dashboard</a>
+        <a href="#environmental/goals" class="nav-link-horizontal" id="link-environmental">Environmental</a>
+        <a href="#social/csr-activities" class="nav-link-horizontal" id="link-social">Social</a>
+        <a href="#governance/policies" class="nav-link-horizontal" id="link-governance">Governance</a>
+        <a href="#gamification/challenges" class="nav-link-horizontal" id="link-gamification">Gamification</a>
+        <a href="#reports/environmental-report" class="nav-link-horizontal" id="link-reports">Reports</a>
+        <a href="#settings/departments" class="nav-link-horizontal" id="link-settings">Settings</a>
       </nav>
-
-      <!-- Sidebar User Profile -->
-      <div class="sidebar-user-profile">
-        <div class="user-avatar">JD</div>
-        <div class="user-info">
-          <span class="user-name">Jane Doe</span>
-          <span class="user-role">Sustainability Admin</span>
-        </div>
-        <div class="user-xp-badge">
-          <i data-lucide="sparkles"></i>
-          <span class="user-xp-text">1,250 XP</span>
-        </div>
-      </div>
-    </aside>
+    </header>
 
     <!-- Main Content Area -->
-    <main class="app-main-content">
-      <!-- Main Header with Horizontal Top Navigation -->
-      <header class="app-content-header">
-        <!-- Horizontal Tab Bar (Primary Module Navigation) -->
-        <div class="top-nav-bar" id="top-nav-bar">
-          <a href="#dashboard" class="top-nav-link active" id="top-link-dashboard">Dashboard</a>
-          <a href="#environmental/emission-factors" class="top-nav-link" id="top-link-environmental">Environmental</a>
-          <a href="#social/csr-activities" class="top-nav-link" id="top-link-social">Social</a>
-          <a href="#governance/policies" class="top-nav-link" id="top-link-governance">Governance</a>
-          <a href="#gamification/challenges" class="top-nav-link" id="top-link-gamification">Gamification</a>
-          <a href="#reports/esg-summary" class="top-nav-link" id="top-link-reports">Reports</a>
-          <a href="#settings/departments" class="top-nav-link" id="top-link-settings">Settings</a>
-        </div>
-
-        <div class="header-actions">
-          <button class="header-action-btn" id="notifications-btn" aria-label="Notifications">
-            <i data-lucide="bell"></i>
-            <span class="btn-badge"></span>
-          </button>
-          <button class="header-action-btn" id="theme-toggle" aria-label="Toggle Theme">
-            <i data-lucide="sun"></i>
-          </button>
-        </div>
-      </header>
-
+    <main class="app-main-content-horizontal">
       <!-- Page Viewport -->
-      <div class="content-viewport" id="content-viewport">
+      <div class="content-viewport-horizontal" id="content-viewport">
         <!-- Component Content gets injected here -->
       </div>
     </main>

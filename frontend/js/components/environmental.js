@@ -1,5 +1,5 @@
 /**
- * EcoSphere Environmental Module View Component - Unified & Interactive
+ * EcoSphere Environmental Module View Component - Unified, Interactive & Top-Nav Layout
  */
 
 // Module-level in-memory state, persisting across internal tab switching
@@ -39,41 +39,22 @@ export function renderEnvironmentalPage(container, pageKey) {
   state.selectedGoalId = null;
 
   container.innerHTML = `
-    <div class="view-container">
-      <!-- Premium MacOS-Style Window Header -->
-      <div class="window-mock-header">
-        <div class="window-controls">
-          <span class="dot dot-red"></span>
-          <span class="dot dot-orange"></span>
-          <span class="dot dot-green"></span>
-        </div>
-        <div class="window-title-text">EcoSphere: Environmental</div>
-      </div>
-
-      <!-- Sub Navigation Tabs Bar (Unified Page Experience) -->
+    <div class="view-container" style="padding-top: 0;">
+      
+      <!-- Sub Navigation Connected Rectangular Tabs Row -->
       <div class="sub-nav-tabs">
         <a href="#environmental/emission-factors" class="sub-nav-tab ${pageKey === 'emission-factors' ? 'active' : ''}">
-          <i data-lucide="calculator" class="tab-icon"></i> Emission Factors
+          Emission Factors
         </a>
         <a href="#environmental/product-esg-profiles" class="sub-nav-tab ${pageKey === 'product-esg-profiles' ? 'active' : ''}">
-          <i data-lucide="package" class="tab-icon"></i> Product ESG Profiles
+          Product ESG Profiles
         </a>
         <a href="#environmental/carbon-transactions" class="sub-nav-tab ${pageKey === 'carbon-transactions' ? 'active' : ''}">
-          <i data-lucide="activity" class="tab-icon"></i> Carbon Transactions
+          Carbon Transactions
         </a>
         <a href="#environmental/goals" class="sub-nav-tab ${pageKey === 'goals' ? 'active' : ''}">
-          <i data-lucide="target" class="tab-icon"></i> Environmental Goals
+          Environmental Goals
         </a>
-      </div>
-
-      <!-- View Title & Description -->
-      <div class="view-header" style="margin-top: 10px;">
-        <h1 class="view-title" style="font-size: 24px; font-family: var(--font-heading); margin-bottom: 4px;">
-          ${getEnvironmentalTitle(pageKey)}
-        </h1>
-        <p class="view-description" style="color: var(--text-secondary); margin-bottom: 24px;">
-          ${getEnvironmentalDesc(pageKey)}
-        </p>
       </div>
 
       <!-- Active Section Panel -->
@@ -95,33 +76,7 @@ export function renderEnvironmentalPage(container, pageKey) {
 }
 
 /**
- * Tab titles helper
- */
-function getEnvironmentalTitle(key) {
-  switch (key) {
-    case 'emission-factors': return 'Emission Factors Manager';
-    case 'product-esg-profiles': return 'Product ESG Footprints';
-    case 'carbon-transactions': return 'Carbon Ledger & Registry';
-    case 'goals': return 'Environmental Goals Tracking';
-    default: return 'Environmental Hub';
-  }
-}
-
-/**
- * Tab descriptions helper
- */
-function getEnvironmentalDesc(key) {
-  switch (key) {
-    case 'emission-factors': return 'Manage the CO2e calculation coefficients for different energy, transport, and waste categories.';
-    case 'product-esg-profiles': return 'Review carbon footprint metrics, recyclability scores, and lifecycle details for your product catalog.';
-    case 'carbon-transactions': return 'Log operational events or configure automated ERP transaction parsing to record carbon emissions.';
-    case 'goals': return 'Track progress towards organizational carbon offset, energy reduction, and sustainability targets.';
-    default: return 'Configure and manage your organization\'s environmental footprint metrics.';
-  }
-}
-
-/**
- * Renders HTML for active tab
+ * Renders HTML for active tab (KPI Summaries removed completely as requested)
  */
 function renderActiveSectionPanel(key) {
   switch (key) {
@@ -142,9 +97,6 @@ function renderActiveSectionPanel(key) {
 // 1. EMISSION FACTORS VIEW
 // ---------------------------------------------------------------------
 function renderEmissionFactors() {
-  const activeCount = state.emissionFactors.filter(f => f.status === 'Active').length;
-  const systemCount = state.emissionFactors.filter(f => f.source.includes('DEFRA') || f.source.includes('EPA') || f.source.includes('IPCC')).length;
-  
   const factorRows = state.emissionFactors.map(f => `
     <tr>
       <td><strong class="factor-activity">${f.activity}</strong></td>
@@ -162,22 +114,7 @@ function renderEmissionFactors() {
   `).join('');
 
   return `
-    <div class="grid-3" style="margin-bottom: 24px;">
-      <div class="glass-card stat-box border-success">
-        <span class="stat-lbl">Active Factors</span>
-        <h3>${activeCount}</h3>
-      </div>
-      <div class="glass-card stat-box">
-        <span class="stat-lbl">System-sourced Factors</span>
-        <h3>${systemCount}</h3>
-      </div>
-      <div class="glass-card stat-box">
-        <span class="stat-lbl">Last Update</span>
-        <h3>July 12, 2026</h3>
-      </div>
-    </div>
-
-    <div class="view-card">
+    <div class="view-card" style="margin-top: 0; padding: 0; background: transparent; border: none; box-shadow: none;">
       <div class="table-actions">
         <div class="search-input-wrapper">
           <i data-lucide="search" class="search-icon"></i>
@@ -261,19 +198,10 @@ function renderProductCardsHTML() {
   }).join('');
 }
 
-function getProductScore(recyclability) {
-  if (recyclability >= 90) return 'A';
-  if (recyclability >= 75) return 'B';
-  if (recyclability >= 60) return 'C';
-  return 'D';
-}
-
 // ---------------------------------------------------------------------
 // 3. CARBON TRANSACTIONS VIEW
 // ---------------------------------------------------------------------
 function renderCarbonTransactions() {
-  const totalEmissions = state.carbonTransactions.reduce((acc, t) => acc + t.calculated, 0);
-
   const txRows = state.carbonTransactions.map(t => `
     <tr>
       <td>${t.date}</td>
@@ -285,13 +213,12 @@ function renderCarbonTransactions() {
     </tr>
   `).join('');
 
-  // Sourcing factors for the form select dropdown
   const factorOptions = state.emissionFactors.map(f => `
     <option value="${f.id}">${f.activity} (${f.source})</option>
   `).join('');
 
   return `
-    <div class="grid-3" style="grid-template-columns: 1fr 2fr; gap: 24px;">
+    <div class="grid-3" style="grid-template-columns: 1fr 2fr; gap: 24px; margin-top: 0;">
       <!-- Log Form (Left) -->
       <div class="glass-card log-form-wrapper" style="height: fit-content;">
         <h3 class="form-title" style="display: flex; align-items: center; gap: 8px;">
@@ -328,11 +255,7 @@ function renderCarbonTransactions() {
       </div>
 
       <!-- calculated emissions registry table (Right) -->
-      <div class="view-card" style="margin: 0;">
-        <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 16px; margin-bottom: 16px;">
-          <h3 style="font-family: var(--font-heading); font-size: 18px; font-weight: 600;">Calculated Emissions Registry</h3>
-          <span style="font-size: 13.5px; color: var(--text-secondary);">Total Recorded: <strong style="color: var(--accent-success);">${totalEmissions.toFixed(2)} tCO2e</strong></span>
-        </div>
+      <div class="view-card" style="margin: 0; padding: 0; background: transparent; border: none; box-shadow: none;">
         <div class="table-wrapper">
           <table class="data-table">
             <thead>
@@ -363,10 +286,10 @@ function renderEnvironmentalGoals() {
     const progress = Math.min(100, Math.max(0, Math.round((g.current / g.target) * 100)));
     const isSelected = state.selectedGoalId === g.id;
     
-    // Status badges class mapping based on mockup
-    let statusClass = 'status-badge-active';
-    if (g.status === 'On Track') statusClass = 'status-badge-ontrack';
-    if (g.status === 'Completed') statusClass = 'status-badge-completed';
+    // Status outlines mapping strictly to user request:
+    // Green outlines for Active / On Track, Blue outline for Completed
+    let statusClass = 'status-badge-outline-green';
+    if (g.status === 'Completed') statusClass = 'status-badge-outline-blue';
 
     return `
       <tr class="goal-row ${isSelected ? 'selected' : ''}" data-id="${g.id}">
@@ -389,28 +312,14 @@ function renderEnvironmentalGoals() {
   }).join('');
 
   return `
-    <!-- Top KPI cards for goals summary -->
-    <div class="grid-3" style="margin-bottom: 24px;">
-      <div class="glass-card stat-box border-success">
-        <span class="stat-lbl">Total Goals</span>
-        <h3>${state.environmentalGoals.length}</h3>
-      </div>
-      <div class="glass-card stat-box">
-        <span class="stat-lbl">Completed Targets</span>
-        <h3>${state.environmentalGoals.filter(g => g.status === 'Completed').length}</h3>
-      </div>
-      <div class="glass-card stat-box">
-        <span class="stat-lbl">Average Goal Progress</span>
-        <h3>${Math.round(state.environmentalGoals.reduce((sum, g) => sum + Math.min(100, (g.current / g.target) * 100), 0) / (state.environmentalGoals.length || 1))}%</h3>
-      </div>
-    </div>
-
     <!-- Main goals ledger -->
-    <div class="view-card">
-      <div class="table-actions" style="margin-bottom: 16px;">
+    <div class="view-card" style="margin-top: 0; padding: 0; background: transparent; border: none; box-shadow: none;">
+      
+      <!-- Action Row & Search Input -->
+      <div class="table-actions" style="margin-bottom: 20px;">
         <div style="display: flex; gap: 8px; align-items: center; position: relative;">
           <button class="btn btn-success" id="btn-new-goal">
-            <i data-lucide="plus"></i> + New Goal
+             + New Goal
           </button>
           
           <button class="btn btn-orange disabled" id="btn-edit-goal" disabled>
@@ -459,7 +368,7 @@ function renderEnvironmentalGoals() {
       </div>
 
       <div class="goals-footer-caption">
-        Row actions: Click a row to select (View details / Edit / Delete). &bull; Carbon Transactions auto-generated from Purchase/Manufacturing/Fleet/Expenses
+        Row actions: <i data-lucide="eye" class="footer-icon"></i> View <i data-lucide="edit-3" class="footer-icon"></i> Edit <i data-lucide="trash-2" class="footer-icon"></i> Delete &bull; Carbon Transactions auto-generated from Purchase/Manufacturing/Fleet/Expenses
       </div>
     </div>
   `;
@@ -469,15 +378,6 @@ function renderEnvironmentalGoals() {
 // EVENT BINDINGS
 // ---------------------------------------------------------------------
 function bindActivePanelEvents(container, pageKey) {
-  // Global Tab switching logic fallback in case app router isn't listening (direct click styling fallback)
-  const tabs = container.querySelectorAll('.sub-nav-tab');
-  tabs.forEach(tab => {
-    tab.addEventListener('click', () => {
-      tabs.forEach(t => t.classList.remove('active'));
-      tab.classList.add('active');
-    });
-  });
-
   if (pageKey === 'emission-factors') {
     bindEmissionFactorsEvents(container);
   } else if (pageKey === 'product-esg-profiles') {
@@ -493,7 +393,6 @@ function bindActivePanelEvents(container, pageKey) {
  * 1. Emission Factors Events
  */
 function bindEmissionFactorsEvents(container) {
-  // Search
   const searchInput = container.querySelector('#factors-search');
   if (searchInput) {
     searchInput.addEventListener('input', (e) => {
@@ -511,7 +410,6 @@ function bindEmissionFactorsEvents(container) {
     });
   }
 
-  // Row Edit button
   const editButtons = container.querySelectorAll('.edit-factor-row-btn');
   editButtons.forEach(btn => {
     btn.addEventListener('click', (e) => {
@@ -568,7 +466,6 @@ function bindEmissionFactorsEvents(container) {
     });
   });
 
-  // Add Factor
   const addBtn = container.querySelector('#btn-add-factor');
   if (addBtn) {
     addBtn.addEventListener('click', () => {
@@ -629,7 +526,6 @@ function bindEmissionFactorsEvents(container) {
  * 2. Product ESG Profiles Events
  */
 function bindProductESGProfilesEvents(container) {
-  // Class Filter dropdown
   const filterDropdown = container.querySelector('#prod-class-filter');
   if (filterDropdown) {
     filterDropdown.value = state.productsFilterClass;
@@ -647,7 +543,6 @@ function bindProductESGProfilesEvents(container) {
     });
   }
 
-  // Add Profile Button
   const addBtn = container.querySelector('#btn-add-product-profile');
   if (addBtn) {
     addBtn.addEventListener('click', () => {
@@ -704,7 +599,6 @@ function bindProductESGProfilesEvents(container) {
  * 3. Carbon Transactions Events
  */
 function bindCarbonTransactionsEvents(container) {
-  // Update unit label dynamically
   const factorSelect = container.querySelector('#tx-factor-select');
   const unitLabel = container.querySelector('#tx-unit-label');
   if (factorSelect && unitLabel) {
@@ -712,17 +606,15 @@ function bindCarbonTransactionsEvents(container) {
       const val = factorSelect.value;
       const factor = state.emissionFactors.find(f => f.id === val);
       if (factor) {
-        // e.g. "kg CO2e / Litre" -> "Litre"
         const unitParts = factor.unit.split('/');
         const unitStr = unitParts[1] ? unitParts[1].trim() : 'Qty';
         unitLabel.textContent = unitStr;
       }
     };
     factorSelect.addEventListener('change', updateUnit);
-    updateUnit(); // initial run
+    updateUnit();
   }
 
-  // Calculate & Log Form Submit
   const form = container.querySelector('#tx-log-form');
   if (form) {
     form.addEventListener('submit', (e) => {
@@ -739,9 +631,7 @@ function bindCarbonTransactionsEvents(container) {
       const factor = state.emissionFactors.find(f => f.id === factorId);
       if (!factor) return;
 
-      // Multiply qty by factor coefficient and divide by 1000 to convert to tCO2e
       const calculated = parseFloat((qtyVal * factor.value / 1000).toFixed(2));
-      
       const unitParts = factor.unit.split('/');
       const unitStr = unitParts[1] ? unitParts[1].trim() : 'Qty';
 
@@ -776,11 +666,9 @@ function bindGoalsEvents(container) {
       const id = row.getAttribute('data-id');
       
       if (state.selectedGoalId === id) {
-        // Deselect
         state.selectedGoalId = null;
         row.classList.remove('selected');
       } else {
-        // Select
         state.selectedGoalId = id;
         tableRows.forEach(r => r.classList.remove('selected'));
         row.classList.add('selected');
@@ -790,7 +678,6 @@ function bindGoalsEvents(container) {
     });
   });
 
-  // Helper to enable/disable buttons based on selection
   function updateGoalActionButtons() {
     if (state.selectedGoalId) {
       editBtn.removeAttribute('disabled');
@@ -822,7 +709,7 @@ function bindGoalsEvents(container) {
     });
   }
 
-  // Export Dropdown Trigger
+  // Export Dropdown
   const exportBtn = container.querySelector('#btn-export-goal');
   const exportMenu = container.querySelector('#export-menu');
   if (exportBtn && exportMenu) {
@@ -1064,117 +951,64 @@ function showToast(message, type = 'success') {
   }, 3000);
 }
 
+function getProductScore(recyclability) {
+  if (recyclability >= 90) return 'A';
+  if (recyclability >= 75) return 'B';
+  if (recyclability >= 60) return 'C';
+  return 'D';
+}
+
 // ---------------------------------------------------------------------
-// ENVIRONMENTAL CUSTOM CSS RULES
+// ENVIRONMENTAL CUSTOM CSS RULES (Connected Sub-Tabs, Thick Bars, Outlined Statuses)
 // ---------------------------------------------------------------------
 function getEnvironmentalCSS() {
   return `
-    /* MacOS Style Header */
-    .window-mock-header {
-      display: flex;
-      align-items: center;
-      padding: 10px 18px;
-      border-radius: var(--radius-md) var(--radius-md) 0 0;
-      border-bottom: 1px solid var(--border-color);
-      gap: 16px;
-    }
-    [data-theme="dark"] .window-mock-header {
-      background-color: #111827;
-      color: #E5E7EB;
-    }
-    [data-theme="light"] .window-mock-header {
-      background-color: #E5E7EB;
-      color: #1F2937;
-    }
-    .window-controls {
-      display: flex;
-      gap: 6px;
-    }
-    .dot {
-      width: 12px;
-      height: 12px;
-      border-radius: 50%;
-      display: inline-block;
-    }
-    .dot-red { background-color: #EF4444; }
-    .dot-orange { background-color: #F59E0B; }
-    .dot-green { background-color: #10B981; }
-    .window-title-text {
-      font-family: var(--font-heading);
-      font-weight: 600;
-      font-size: 13.5px;
-    }
-
-    /* Sub Navigation Tabs Bar */
+    /* Connected Rectangular Sub-navigation Tabs Row */
     .sub-nav-tabs {
       display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin-top: 20px;
-      margin-bottom: 16px;
+      gap: 0;
+      margin-top: 10px;
+      margin-bottom: 24px;
       border-bottom: 1px solid var(--border-color);
-      padding-bottom: 14px;
+      width: 100%;
     }
     .sub-nav-tab {
-      display: flex;
+      display: inline-flex;
       align-items: center;
-      padding: 10px 18px;
-      border-radius: var(--radius-md);
-      border: 1px solid var(--border-color);
-      background: var(--bg-sidebar);
+      justify-content: center;
+      padding: 12px 24px;
+      background: var(--bg-card);
       color: var(--text-secondary);
       font-family: var(--font-heading);
       font-weight: 600;
       font-size: 13.5px;
       text-decoration: none;
       cursor: pointer;
+      border: 1px solid var(--border-color);
+      margin-right: -1px; /* connected visual border overlap */
+      border-radius: 0; /* rectangular */
       transition: all var(--transition-fast);
     }
     .sub-nav-tab:hover {
-      background: rgba(255, 255, 255, 0.05);
+      background: rgba(255, 255, 255, 0.03);
       color: var(--text-primary);
-      border-color: var(--border-hover);
     }
     .sub-nav-tab.active {
       background-color: var(--accent-success) !important;
-      color: white !important;
+      color: #080B11 !important; /* dark text for high contrast on green */
       border-color: var(--accent-success) !important;
-      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.25);
-    }
-    .tab-icon {
-      width: 16px;
-      height: 16px;
-      margin-right: 8px;
+      border-radius: var(--radius-md) !important; /* rounded edges for the active tab */
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+      z-index: 2;
     }
 
-    /* Stat boxes */
-    .stat-box {
-      padding: 20px;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-    }
-    .stat-lbl {
-      font-size: 12px;
-      color: var(--text-secondary);
-    }
-    .stat-box h3 {
-      font-family: var(--font-heading);
-      font-size: 24px;
-      font-weight: 700;
-    }
-    .border-success {
-      border-color: rgba(16, 185, 129, 0.25);
-    }
-
-    /* Actions and Search inputs */
+    /* Actions row and search */
     .table-actions {
       display: flex;
       align-items: center;
       justify-content: space-between;
       gap: 16px;
-      margin-bottom: 16px;
-      margin-top: 4px;
+      margin-bottom: 20px;
     }
     .search-input-wrapper {
       position: relative;
@@ -1223,6 +1057,7 @@ function getEnvironmentalCSS() {
     }
     .btn-success {
       background-color: var(--accent-success);
+      color: #080B11; /* Contrast label */
     }
     .btn-success:hover:not(.disabled):not(:disabled) {
       background-color: #0d9488;
@@ -1234,7 +1069,7 @@ function getEnvironmentalCSS() {
       background-color: #d97706;
     }
     .btn-red {
-      background-color: var(--accent-danger);
+      background-color: #EF4444; /* Coral/pink accent */
     }
     .btn-red:hover:not(.disabled):not(:disabled) {
       background-color: #dc2626;
@@ -1256,9 +1091,12 @@ function getEnvironmentalCSS() {
       justify-content: center;
     }
     
-    /* Table Wrapper and tables */
+    /* Table structure */
     .table-wrapper {
       overflow-x: auto;
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
     }
     .data-table {
       width: 100%;
@@ -1266,7 +1104,7 @@ function getEnvironmentalCSS() {
       text-align: left;
     }
     .data-table th, .data-table td {
-      padding: 12px 16px;
+      padding: 14px 18px;
       border-bottom: 1px solid var(--border-color);
       font-size: 14px;
     }
@@ -1306,7 +1144,7 @@ function getEnvironmentalCSS() {
       height: 16px;
     }
 
-    /* Outlined Tags & Badges */
+    /* Outlined Tags & Badges strictly following prompt instructions */
     .source-tag {
       font-size: 11px;
       background: rgba(255,255,255,0.05);
@@ -1332,51 +1170,53 @@ function getEnvironmentalCSS() {
 
     .status-badge {
       display: inline-block;
-      padding: 3px 10px;
-      border-radius: var(--radius-sm);
+      padding: 4px 12px;
+      border-radius: var(--radius-full);
       font-size: 12px;
       font-weight: 600;
       text-align: center;
       line-height: 1.2;
     }
-    .status-badge-active, .status-badge-ontrack {
-      border: 1px solid var(--accent-success);
-      color: var(--accent-success);
-      background-color: rgba(16, 185, 129, 0.04);
+    .status-badge-outline-green {
+      border: 1.5px solid var(--accent-success) !important;
+      color: var(--accent-success) !important;
+      background-color: transparent !important;
     }
-    .status-badge-completed {
-      background-color: var(--accent-primary);
-      color: white;
+    .status-badge-outline-blue {
+      border: 1.5px solid var(--accent-primary) !important;
+      color: var(--accent-primary) !important;
+      background-color: transparent !important;
     }
 
-    /* Progress bar Mini columns */
+    /* Thick, bold, bright green progress bars */
     .progress-col {
       display: flex;
       align-items: center;
-      gap: 10px;
-      min-width: 140px;
+      gap: 12px;
+      min-width: 160px;
     }
     .progress-bar-mini {
-      height: 6px;
-      width: 100px;
-      background-color: rgba(255,255,255,0.05);
+      height: 12px; /* Thick bold indicator bar */
+      width: 110px;
+      background-color: rgba(255, 255, 255, 0.08);
       border-radius: var(--radius-full);
       overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.03);
     }
     .progress-fill-mini {
       height: 100%;
       border-radius: var(--radius-full);
-      background: linear-gradient(90deg, #10B981, #34D399);
+      background-color: var(--accent-success) !important; /* Thick bright green fill */
     }
     .progress-pct {
-      font-size: 12px;
-      font-weight: 600;
-      color: var(--text-secondary);
-      min-width: 30px;
+      font-size: 13.5px;
+      font-weight: 700;
+      color: var(--text-primary); /* visual weight matching the bar */
+      min-width: 35px;
       text-align: right;
     }
 
-    /* Product card style */
+    /* Product card grid layout */
     .product-card {
       display: flex;
       flex-direction: column;
@@ -1442,7 +1282,7 @@ function getEnvironmentalCSS() {
     .p-lbl { color: var(--text-secondary); }
     .p-val { font-weight: 600; }
 
-    /* Carbon logs styles */
+    /* Carbon logs form styles */
     .form-title {
       font-family: var(--font-heading);
       font-size: 16px;
@@ -1506,15 +1346,28 @@ function getEnvironmentalCSS() {
       color: var(--text-secondary);
     }
 
-    /* Goals Caption Footer */
+    /* Small font footer caption strictly formatted */
     .goals-footer-caption {
-      margin-top: 16px;
-      font-size: 12px;
+      margin-top: 14px;
+      font-size: 11px;
       color: var(--text-muted);
       text-align: left;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      padding: 0 4px;
+    }
+    .footer-icon {
+      width: 12px;
+      height: 12px;
+      color: var(--text-muted);
+      margin-left: 2px;
+      margin-right: 1px;
+      display: inline-block;
+      vertical-align: text-bottom;
     }
 
-    /* Modal Backdrop style */
+    /* Modal dialog overrides */
     .modal-backdrop {
       position: fixed;
       top: 0;
@@ -1604,7 +1457,7 @@ function getEnvironmentalCSS() {
       to { opacity: 0; transform: scale(0.96); }
     }
 
-    /* Dropdown Menus */
+    /* Connected tab dropdown styling */
     .dropdown-wrapper {
       position: relative;
       display: inline-block;
@@ -1639,7 +1492,7 @@ function getEnvironmentalCSS() {
       color: var(--text-primary);
     }
 
-    /* Filter select styles */
+    /* Filter Class styling */
     .filter-dropdown {
       background-color: var(--bg-card);
       border: 1px solid var(--border-color);
@@ -1654,7 +1507,7 @@ function getEnvironmentalCSS() {
       border-color: var(--accent-success);
     }
 
-    /* Toast Notification styles */
+    /* Dynamic notification toasts styling */
     .env-toast {
       position: fixed;
       bottom: 24px;
