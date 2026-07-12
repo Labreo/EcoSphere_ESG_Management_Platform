@@ -1,10 +1,7 @@
-/**
- * EcoSphere Reports Module View Component
- */
+import * as api from '../api/reports.js';
+import { showToast, renderLoading } from '../api/toast.js';
 
-// Module-level in-memory state, persisting across page navigation & filter changes
-const state = {
-  // Global filter values
+let state = {
   filters: {
     department: 'All Departments',
     dateRange: 'All Dates',
@@ -13,245 +10,13 @@ const state = {
     challenge: 'All Challenges',
     category: 'All Categories'
   },
-  
-  // Columns inclusion state for the Custom Builder
   builderFields: {
     co2e: true,
     xp: true,
     compliance: true
   },
-  
-  // Custom builder text query
   searchQuery: '',
-
-  // High-fidelity mock database of aggregate transactions/actions spanning all components
-  records: [
-    {
-      id: 'rec-1',
-      date: '2026-07-12',
-      department: 'Logistics & Supply Chain',
-      module: 'Environmental',
-      category: 'Electricity',
-      employee: 'Mark Robinson',
-      challenge: 'Energy Audit Champion',
-      indicator: 'Grid Electricity Emission',
-      value: '4.21 tCO2e',
-      co2e: 4.21,
-      xp: 250,
-      compliance: 'Compliant',
-      details: 'Logistics main office grid consumption for July Q3'
-    },
-    {
-      id: 'rec-2',
-      date: '2026-07-11',
-      department: 'Product Design & R&D',
-      module: 'Social',
-      category: 'Community Outreach',
-      employee: 'Sarah Jenkins',
-      challenge: 'Sustainability Sprint',
-      indicator: 'Beach Clean-up CSR Participation',
-      value: '300 XP',
-      co2e: 0,
-      xp: 300,
-      compliance: 'Compliant',
-      details: 'Attended the Q3 weekend beach cleanup project'
-    },
-    {
-      id: 'rec-3',
-      date: '2026-07-10',
-      department: 'Finance & Operations',
-      module: 'Governance',
-      category: 'Compliance',
-      employee: 'Karan Shah',
-      challenge: 'None',
-      indicator: 'Sustainability Code Signatures',
-      value: 'Acknowledged',
-      co2e: 0,
-      xp: 0,
-      compliance: 'Compliant',
-      details: 'Signed Sustainability Code of Conduct v2.1'
-    },
-    {
-      id: 'rec-4',
-      date: '2026-07-09',
-      department: 'Logistics & Supply Chain',
-      module: 'Environmental',
-      category: 'Transport',
-      employee: 'Mark Robinson',
-      challenge: 'Commute Green Week',
-      indicator: 'Fleet Fuel Combustion',
-      value: '1.85 tCO2e',
-      co2e: 1.85,
-      xp: 120,
-      compliance: 'Compliant',
-      details: 'Calculated fuel emissions from diesel deliveries'
-    },
-    {
-      id: 'rec-5',
-      date: '2026-07-08',
-      department: 'Product Design & R&D',
-      module: 'Social',
-      category: 'Diversity',
-      employee: 'Aditi Rao',
-      challenge: 'None',
-      indicator: 'DEI Training Completion',
-      value: 'Completed (100 XP)',
-      co2e: 0,
-      xp: 100,
-      compliance: 'Compliant',
-      details: 'Completed Diversity, Equity & Inclusion course'
-    },
-    {
-      id: 'rec-6',
-      date: '2026-07-01',
-      department: 'Finance & Operations',
-      module: 'Governance',
-      category: 'Compliance',
-      employee: 'Jane Doe',
-      challenge: 'None',
-      indicator: 'Vendor Audit Assessment',
-      value: '1 issue found',
-      co2e: 0,
-      xp: 0,
-      compliance: 'Under Review',
-      details: 'Q2 Procurement audit conducted by R. Iyer'
-    },
-    {
-      id: 'rec-7',
-      date: '2026-06-15',
-      department: 'Logistics & Supply Chain',
-      module: 'Governance',
-      category: 'Compliance',
-      employee: 'Bob Sterling',
-      challenge: 'None',
-      indicator: 'ISO 14064 Carbon Verification',
-      value: '1 major issue',
-      co2e: 0,
-      xp: 0,
-      compliance: 'Non-Compliant',
-      details: 'Scope 1 fuel logs missing for Q2 logistics fleet'
-    },
-    {
-      id: 'rec-8',
-      date: '2026-06-12',
-      department: 'Product Design & R&D',
-      module: 'Environmental',
-      category: 'Office Green',
-      employee: 'Sarah Jenkins',
-      challenge: 'The Paperless Office',
-      indicator: 'Paper Consumption Reduction',
-      value: '0.45 tCO2e',
-      co2e: 0.45,
-      xp: 100,
-      compliance: 'Compliant',
-      details: 'Transitioned all design specs to cloud document workflows'
-    },
-    {
-      id: 'rec-9',
-      date: '2026-05-10',
-      department: 'Product Design & R&D',
-      module: 'Social',
-      category: 'Community Outreach',
-      employee: 'Aditi Rao',
-      challenge: 'None',
-      indicator: 'Tree Plantation CSR',
-      value: 'Joined (50 XP)',
-      co2e: 0,
-      xp: 50,
-      compliance: 'Compliant',
-      details: 'Joined official team tree planting drive near HQ'
-    },
-    {
-      id: 'rec-10',
-      date: '2026-04-20',
-      department: 'Finance & Operations',
-      module: 'Environmental',
-      category: 'Renewable Transition',
-      employee: 'Jane Doe',
-      challenge: 'None',
-      indicator: 'Office Solar Panel Energy',
-      value: '2.34 tCO2e Saved',
-      co2e: -2.34,
-      xp: 150,
-      compliance: 'Compliant',
-      details: 'Calculated green energy offsets for Q2 HQ billing'
-    },
-    {
-      id: 'rec-11',
-      date: '2026-04-18',
-      department: 'Logistics & Supply Chain',
-      module: 'Social',
-      category: 'Community Outreach',
-      employee: 'Bob Sterling',
-      challenge: 'None',
-      indicator: 'Blood Donation Drive',
-      value: '50 XP',
-      co2e: 0,
-      xp: 50,
-      compliance: 'Compliant',
-      details: 'Donated blood at the corporate healthcare fair'
-    },
-    {
-      id: 'rec-12',
-      date: '2026-03-02',
-      department: 'Finance & Operations',
-      module: 'Governance',
-      category: 'Compliance',
-      employee: 'Alice Vance',
-      challenge: 'None',
-      indicator: 'Vendor Policy Acknowledgement',
-      value: 'Pending',
-      co2e: 0,
-      xp: 0,
-      compliance: 'Pending',
-      details: 'Responsible Sourcing Policy signature pending'
-    },
-    {
-      id: 'rec-13',
-      date: '2026-07-05',
-      department: 'Product Design & R&D',
-      module: 'Social',
-      category: 'Diversity',
-      employee: 'Aditi Rao',
-      challenge: 'None',
-      indicator: 'ESG Fundamentals Completion',
-      value: 'Completed (100 XP)',
-      co2e: 0,
-      xp: 100,
-      compliance: 'Compliant',
-      details: 'Completed core ESG fundamentals training module'
-    },
-    {
-      id: 'rec-14',
-      date: '2026-07-10',
-      department: 'Product Design & R&D',
-      module: 'Environmental',
-      category: 'Office Green',
-      employee: 'Aditi Rao',
-      challenge: 'Recycle Challenge',
-      indicator: 'Recycled Waste Audited',
-      value: '0.12 tCO2e Saved',
-      co2e: -0.12,
-      xp: 80,
-      compliance: 'Compliant',
-      details: 'Audited office e-waste sorting metrics'
-    },
-    {
-      id: 'rec-15',
-      date: '2026-07-11',
-      department: 'Finance & Operations',
-      module: 'Social',
-      category: 'Community Outreach',
-      employee: 'Karan Shah',
-      challenge: 'None',
-      indicator: 'ESG Workshop Training',
-      value: 'Completed (30 XP)',
-      co2e: 0,
-      xp: 30,
-      compliance: 'Compliant',
-      details: 'Participated in the live interactive ESG workshop'
-    }
-  ]
+  records: []
 };
 
 /**
@@ -398,8 +163,29 @@ function getESGSummaryMetrics(filtered) {
 /**
  * Main View Page Render
  */
-export function renderReportsPage(container, pageKey) {
+export async function renderReportsPage(container, pageKey) {
   if (!pageKey) pageKey = 'environmental-report';
+  
+  renderLoading(container);
+  
+  try {
+    const filters = {};
+    let data;
+    if (pageKey === 'environmental-report') {
+      data = await api.getEnvironmentalReport(filters);
+    } else if (pageKey === 'social-report') {
+      data = await api.getSocialReport(filters);
+    } else if (pageKey === 'governance-report') {
+      data = await api.getGovernanceReport(filters);
+    } else if (pageKey === 'esg-summary') {
+      data = await api.getESGSummary(filters);
+    } else {
+      data = await api.getESGSummary(filters);
+    }
+    state.records = data.records || data;
+  } catch (err) {
+    showToast('Failed to load report data: ' + err.message, 'error');
+  }
   
   const filtered = getFilteredRecords();
   let contentHtml = '';
@@ -1123,9 +909,7 @@ function bindReportsEvents(container, pageKey) {
 /**
  * File Generation & Export Utility
  */
-function exportReportData(pageKey, format) {
-  const filtered = getFilteredRecords();
-  
+async function exportReportData(pageKey, format) {
   if (format === 'pdf') {
     showToast('Preparing PDF layouts for print...');
     setTimeout(() => {
@@ -1134,68 +918,12 @@ function exportReportData(pageKey, format) {
     return;
   }
   
-  let content = '';
-  const filename = `${pageKey}-${new Date().toISOString().slice(0, 10)}`;
-  
-  if (format === 'csv' || format === 'excel') {
-    let headers = [];
-    let rows = [];
-    
-    if (pageKey === 'environmental-report') {
-      headers = ['Timestamp', 'Department', 'Category', 'Indicator Name', 'Value', 'Details'];
-      rows = filtered.filter(r => r.module === 'Environmental').map(r => [
-        r.date, r.department, r.category, r.indicator, r.value, r.details
-      ]);
-    } else if (pageKey === 'social-report') {
-      headers = ['Timestamp', 'Department', 'Category', 'Activity Description', 'Metrics Value', 'Details'];
-      rows = filtered.filter(r => r.module === 'Social').map(r => [
-        r.date, r.department, r.category, r.indicator, r.value, r.details
-      ]);
-    } else if (pageKey === 'governance-report') {
-      headers = ['Timestamp', 'Department', 'Category', 'Policy Scope', 'Compliance State', 'Details'];
-      rows = filtered.filter(r => r.module === 'Governance').map(r => [
-        r.date, r.department, r.category, r.indicator, r.compliance, r.details
-      ]);
-    } else if (pageKey === 'esg-summary') {
-      headers = ['Department', 'Environmental Score', 'Social Score', 'Governance Score', 'Weighted Total'];
-      const rdFiltered = state.records.filter(r => r.department === 'Product Design & R&D');
-      const rdM = getESGSummaryMetrics(rdFiltered);
-      const finFiltered = state.records.filter(r => r.department === 'Finance & Operations');
-      const finM = getESGSummaryMetrics(finFiltered);
-      const lscFiltered = state.records.filter(r => r.department === 'Logistics & Supply Chain');
-      const lscM = getESGSummaryMetrics(lscFiltered);
-      
-      rows = [
-        ['Product Design & R&D', rdM.envScore, rdM.socScore, rdM.govScore, rdM.weightedTotal],
-        ['Finance & Operations', finM.envScore, finM.socScore, finM.govScore, finM.weightedTotal],
-        ['Logistics & Supply Chain', lscM.envScore, lscM.socScore, lscM.govScore, lscM.weightedTotal]
-      ];
-    } else if (pageKey === 'custom-report-builder') {
-      headers = ['Timestamp', 'Dept', 'Module', 'Indicator Name'];
-      if (state.builderFields.co2e) headers.push('Calc CO2e');
-      if (state.builderFields.xp) headers.push('XP Awarded');
-      if (state.builderFields.compliance) headers.push('Compliance');
-      
-      rows = filtered.map(r => {
-        const row = [r.date, r.department, r.module, r.indicator];
-        if (state.builderFields.co2e) row.push(r.co2e !== 0 ? r.co2e + ' tCO2e' : '—');
-        if (state.builderFields.xp) row.push(r.xp !== 0 ? r.xp + ' XP' : '—');
-        if (state.builderFields.compliance) row.push(r.compliance);
-        return row;
-      });
-    }
-    
-    // Construct CSV String
-    const csvContent = [
-      headers.join(','),
-      ...rows.map(row => row.map(val => `"${String(val).replace(/"/g, '""')}"`).join(','))
-    ].join('\n');
-    
-    const extension = format === 'csv' ? 'csv' : 'xls';
-    const mimeType = format === 'csv' ? 'text/csv' : 'application/vnd.ms-excel';
-    
-    downloadFile(csvContent, `${filename}.${extension}`, mimeType);
-    showToast(`Exported ${rows.length} rows successfully.`);
+  try {
+    const filters = {};
+    await api.exportReport(format, filters);
+    showToast('Report exported successfully', 'success');
+  } catch (err) {
+    showToast('Export failed: ' + err.message, 'error');
   }
 }
 

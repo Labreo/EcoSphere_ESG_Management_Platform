@@ -1,62 +1,42 @@
-/**
- * EcoSphere Governance Module View Component - High Fidelity & Interactive
- */
+import * as api from '../api/governance.js';
+import { renderLoading } from '../api/toast.js';
 
-import { sanitize } from '../utils/validation.js';
+let policies = [];
+let acknowledgements = [];
+let audits = [];
+let complianceIssues = [];
+let policiesScopeFilter = 'All Scopes';
+let policiesSearchQuery = '';
+let acksSearchQuery = '';
+let acksStatusFilter = 'All Statuses';
+let auditsSearchQuery = '';
+let complianceSearchQuery = '';
+let complianceStatusFilter = 'All Severities';
+let complianceSeverityFilter = 'All Severities';
 
-// Module-level in-memory state persisting across internal tab switching
-const state = {
-  policies: [
-    { id: 'pol-1', title: 'Sustainability Code of Conduct', version: '2.1', status: 'Active', scope: 'Global', description: 'Guides office guidelines regarding single-use plastics, recycling practices, and sustainable commute incentives.', publishedDate: '2026-01-15', acknowledgedCount: 142, totalRequired: 156 },
-    { id: 'pol-2', title: 'Responsible Sourcing & Vendor Policy', version: '1.0', status: 'Active', scope: 'Supply Chain', description: 'Mandates environmental standards for vendors, covering Scope 3 footprint logging and fair labor certifications.', publishedDate: '2026-03-02', acknowledgedCount: 78, totalRequired: 83 },
-    { id: 'pol-3', title: 'Anti-Bribery & Corruption Policy', version: '3.0', status: 'Active', scope: 'Global', description: 'Rules and regulations for anti-bribery, ethics, compliance and anti-money laundering guidelines across all departments.', publishedDate: '2025-11-10', acknowledgedCount: 149, totalRequired: 156 },
-    { id: 'pol-4', title: 'Environmental Health & Safety Guidelines', version: '1.2', status: 'Draft', scope: 'Manufacturing', description: 'EHS guidelines for heavy machinery, waste handling, and emergency response procedures.', publishedDate: '—', acknowledgedCount: 0, totalRequired: 42 }
-  ],
-  acknowledgements: [
-    { id: 'ack-1', employeeName: 'Mark Robinson', policyTitle: 'Sustainability Code of Conduct v2.1', signedDate: '2026-07-10 14:22', complianceState: 'Compliant' },
-    { id: 'ack-2', employeeName: 'Sarah Jenkins', policyTitle: 'Sustainability Code of Conduct v2.1', signedDate: '2026-07-09 09:12', complianceState: 'Compliant' },
-    { id: 'ack-3', employeeName: 'Michael Cho', policyTitle: 'Responsible Sourcing & Vendor Policy v1.0', signedDate: 'Unsigned', complianceState: 'Pending' },
-    { id: 'ack-4', employeeName: 'Aditi Rao', policyTitle: 'Anti-Bribery & Corruption Policy v3.0', signedDate: '2026-07-05 11:30', complianceState: 'Compliant' },
-    { id: 'ack-5', employeeName: 'Karan Shah', policyTitle: 'Sustainability Code of Conduct v2.1', signedDate: '2026-07-11 16:45', complianceState: 'Compliant' },
-    { id: 'ack-6', employeeName: 'Alice Vance', policyTitle: 'Responsible Sourcing & Vendor Policy v1.0', signedDate: 'Unsigned', complianceState: 'Pending' }
-  ],
-  audits: [
-    { id: 'aud-1', title: 'Q2 Waste Audit', department: 'Manufacturing', auditor: 'S. Nair', date: '2026-06-12', findings: '3 minor issues', status: 'Completed' },
-    { id: 'aud-2', title: 'Vendor Compliance Check', department: 'Procurement', auditor: 'R. Iyer', date: '2026-07-01', findings: '1 open issue', status: 'Under Review' },
-    { id: 'aud-3', title: 'ISO 14064 Carbon Verification', department: 'Operations', auditor: 'SGS International', date: '2026-06-15', findings: '1 major issue', status: 'Completed' },
-    { id: 'aud-4', title: 'Ecovadis Rating Assessment', department: 'Procurement', auditor: 'Ecovadis Group', date: '2026-05-10', findings: 'No issues found', status: 'Completed' }
-  ],
-  complianceIssues: [
-    { id: 'CMP-029', issue: 'Missing MSDS sheets', severity: 'High', department: 'Manufacturing', status: 'Open', owner: 'Bob Sterling', dueDate: '2026-07-01', auditRef: 'aud-1' },
-    { id: 'CMP-030', issue: 'Late vendor disclosure', severity: 'Medium', department: 'Procurement', status: 'Resolved', owner: 'Alice Vance', dueDate: '2026-07-05', auditRef: 'aud-2' },
-    { id: 'CMP-031', issue: 'Scope 1 fuel logs missing for Q2 fleet', severity: 'High', department: 'Logistics', status: 'Overdue', owner: 'Mark Robinson', dueDate: '2026-07-01', auditRef: 'aud-3' },
-    { id: 'CMP-032', issue: 'Alembic database schema mismatches on carbon reports table', severity: 'Low', department: 'Engineering', status: 'Open', owner: 'Sarah Jenkins', dueDate: '2026-07-30', auditRef: 'none' },
-    { id: 'CMP-033', issue: 'Improper e-waste recycling disposal', severity: 'Medium', department: 'IT', status: 'Open', owner: 'Sarah Jenkins', dueDate: '2026-07-25', auditRef: 'none' }
-  ],
-  // Filter settings
-  policiesScopeFilter: 'All Scopes',
-  policiesSearchQuery: '',
-  acksSearchQuery: '',
-  acksStatusFilter: 'All Statuses',
-  auditsSearchQuery: '',
-  complianceSearchQuery: '',
-  complianceStatusFilter: 'All Statuses',
-  complianceSeverityFilter: 'All Severities'
-};
-
-// Current mock date configuration for overdue checking
 const SYSTEM_DATE = '2026-07-12';
 
-/**
- * Main render function entry point
- */
-export function renderGovernancePage(container, pageKey) {
+export async function renderGovernancePage(container, pageKey) {
   if (!pageKey) pageKey = 'policies';
+  renderLoading(container);
+  try {
+    const [pols, auds, iss] = await Promise.all([
+      api.getPolicies(),
+      api.getAudits(),
+      api.getIssues(),
+    ]);
+    policies = pols;
+    audits = auds;
+    complianceIssues = iss;
+    acknowledgements = await api.getAcknowledgements();
+  } catch (err) {
+    showToast('Failed to load governance data: ' + err.message, 'error');
+  }
 
   // Automatically evaluate and update overdue status flags based on current time
   const prevStatuses = {};
-  state.complianceIssues.forEach(c => { prevStatuses[c.id] = c.status; });
-  state.complianceIssues.forEach(c => {
+  complianceIssues.forEach(c => { prevStatuses[c.id] = c.status; });
+  complianceIssues.forEach(c => {
     if (c.status !== 'Resolved') {
       if (c.dueDate < SYSTEM_DATE) {
         c.status = 'Overdue';
@@ -69,7 +49,7 @@ export function renderGovernancePage(container, pageKey) {
   // Fire notifications for newly-flagged overdue issues
   const esgSettings = JSON.parse(localStorage.getItem('esg_settings') || '{}');
   const notifSettings = esgSettings.notifications || {};
-  state.complianceIssues.forEach(c => {
+  complianceIssues.forEach(c => {
     if (c.status === 'Overdue' && prevStatuses[c.id] !== 'Overdue') {
       // In-app toast alert for overdue issues
       if (notifSettings.newComplianceIssue_inapp !== false) {
@@ -151,10 +131,10 @@ function renderActiveSectionPanel(key) {
 // 1. ESG POLICIES PANEL
 // ---------------------------------------------------------------------
 function renderPolicies() {
-  const filtered = state.policies.filter(p => {
-    const matchesScope = state.policiesScopeFilter === 'All Scopes' || p.scope === state.policiesScopeFilter;
-    const matchesSearch = p.title.toLowerCase().includes(state.policiesSearchQuery.toLowerCase()) || 
-                          p.description.toLowerCase().includes(state.policiesSearchQuery.toLowerCase());
+  const filtered = policies.filter(p => {
+    const matchesScope = policiesScopeFilter === 'All Scopes' || p.scope === policiesScopeFilter;
+    const matchesSearch = p.title.toLowerCase().includes(policiesSearchQuery.toLowerCase()) || 
+                          p.description.toLowerCase().includes(policiesSearchQuery.toLowerCase());
     return matchesScope && matchesSearch;
   });
 
@@ -162,7 +142,7 @@ function renderPolicies() {
     const pct = p.totalRequired > 0 ? Math.round((p.acknowledgedCount / p.totalRequired) * 100) : 0;
     
     // Check if user (Simulating Mark Robinson) signed this policy
-    const isSigned = state.acknowledgements.some(a => 
+    const isSigned = acknowledgements.some(a => 
       a.employeeName === 'Mark Robinson' && a.policyTitle === `${p.title} v${p.version}` && a.signedDate !== 'Unsigned'
     );
 
@@ -200,12 +180,12 @@ function renderPolicies() {
   return `
     <div class="table-actions">
       <div class="filters-row">
-        <input type="text" class="table-search" id="policy-search" placeholder="Search policies..." value="${state.policiesSearchQuery}" />
+        <input type="text" class="table-search" id="policy-search" placeholder="Search policies..." value="${policiesSearchQuery}" />
         <select class="filter-dropdown" id="policy-scope-filter">
-          <option ${state.policiesScopeFilter === 'All Scopes' ? 'selected' : ''}>All Scopes</option>
-          <option ${state.policiesScopeFilter === 'Global' ? 'selected' : ''}>Global</option>
-          <option ${state.policiesScopeFilter === 'Manufacturing' ? 'selected' : ''}>Manufacturing</option>
-          <option ${state.policiesScopeFilter === 'Supply Chain' ? 'selected' : ''}>Supply Chain</option>
+          <option ${policiesScopeFilter === 'All Scopes' ? 'selected' : ''}>All Scopes</option>
+          <option ${policiesScopeFilter === 'Global' ? 'selected' : ''}>Global</option>
+          <option ${policiesScopeFilter === 'Manufacturing' ? 'selected' : ''}>Manufacturing</option>
+          <option ${policiesScopeFilter === 'Supply Chain' ? 'selected' : ''}>Supply Chain</option>
         </select>
       </div>
       <button class="btn btn-purple" id="btn-add-policy"><i data-lucide="plus"></i> Add Policy</button>
@@ -222,15 +202,15 @@ function renderPolicies() {
 // 2. POLICY ACKNOWLEDGEMENTS PANEL
 // ---------------------------------------------------------------------
 function renderPolicyAcknowledgements() {
-  const activePolicies = state.policies.filter(p => p.status === 'Active');
+  const activePolicies = policies.filter(p => p.status === 'Active');
   const totalRequired = activePolicies.reduce((acc, p) => acc + p.totalRequired, 0);
   const totalCompleted = activePolicies.reduce((acc, p) => acc + p.acknowledgedCount, 0);
   const rate = totalRequired > 0 ? Math.round((totalCompleted / totalRequired) * 100) : 0;
 
-  const filtered = state.acknowledgements.filter(a => {
-    const matchesSearch = a.employeeName.toLowerCase().includes(state.acksSearchQuery.toLowerCase()) || 
-                          a.policyTitle.toLowerCase().includes(state.acksSearchQuery.toLowerCase());
-    const matchesStatus = state.acksStatusFilter === 'All Statuses' || a.complianceState === state.acksStatusFilter;
+  const filtered = acknowledgements.filter(a => {
+    const matchesSearch = a.employeeName.toLowerCase().includes(acksSearchQuery.toLowerCase()) || 
+                          a.policyTitle.toLowerCase().includes(acksSearchQuery.toLowerCase());
+    const matchesStatus = acksStatusFilter === 'All Statuses' || a.complianceState === acksStatusFilter;
     return matchesSearch && matchesStatus;
   });
 
@@ -273,11 +253,11 @@ function renderPolicyAcknowledgements() {
       <div class="card-header-with-actions">
         <h3 class="card-section-title">Signature Tracker</h3>
         <div class="table-actions-inline">
-          <input type="text" class="table-search" id="ack-search" placeholder="Search employees/policies..." value="${state.acksSearchQuery}" />
+          <input type="text" class="table-search" id="ack-search" placeholder="Search employees/policies..." value="${acksSearchQuery}" />
           <select class="filter-dropdown" id="ack-status-filter">
-            <option ${state.acksStatusFilter === 'All Statuses' ? 'selected' : ''}>All Statuses</option>
-            <option ${state.acksStatusFilter === 'Compliant' ? 'selected' : ''}>Compliant</option>
-            <option ${state.acksStatusFilter === 'Pending' ? 'selected' : ''}>Pending</option>
+            <option ${acksStatusFilter === 'All Statuses' ? 'selected' : ''}>All Statuses</option>
+            <option ${acksStatusFilter === 'Compliant' ? 'selected' : ''}>Compliant</option>
+            <option ${acksStatusFilter === 'Pending' ? 'selected' : ''}>Pending</option>
           </select>
         </div>
       </div>
@@ -304,11 +284,11 @@ function renderPolicyAcknowledgements() {
 // 3. GOVERNANCE AUDITS PANEL (Mockup Reference)
 // ---------------------------------------------------------------------
 function renderAudits() {
-  const filteredAudits = state.audits.filter(a => {
-    return a.title.toLowerCase().includes(state.auditsSearchQuery.toLowerCase()) || 
-           a.auditor.toLowerCase().includes(state.auditsSearchQuery.toLowerCase()) ||
-           a.department.toLowerCase().includes(state.auditsSearchQuery.toLowerCase()) ||
-           a.findings.toLowerCase().includes(state.auditsSearchQuery.toLowerCase());
+  const filteredAudits = audits.filter(a => {
+    return a.title.toLowerCase().includes(auditsSearchQuery.toLowerCase()) || 
+           a.auditor.toLowerCase().includes(auditsSearchQuery.toLowerCase()) ||
+           a.department.toLowerCase().includes(auditsSearchQuery.toLowerCase()) ||
+           a.findings.toLowerCase().includes(auditsSearchQuery.toLowerCase());
   });
 
   const auditRows = filteredAudits.map(a => {
@@ -334,7 +314,7 @@ function renderAudits() {
   }).join('');
 
   // Get compliance issues that are raised from audits
-  const raisedIssues = state.complianceIssues.filter(c => c.auditRef !== 'none');
+  const raisedIssues = complianceIssues.filter(c => c.auditRef !== 'none');
   const issueRows = raisedIssues.map(c => {
     let severityClass = 'severity-high';
     if (c.severity === 'Medium') severityClass = 'severity-medium';
@@ -362,7 +342,7 @@ function renderAudits() {
   return `
     <div class="table-actions">
       <div class="filters-row">
-        <input type="text" class="table-search" id="audit-search" placeholder="Search audits..." value="${state.auditsSearchQuery}" />
+        <input type="text" class="table-search" id="audit-search" placeholder="Search audits..." value="${auditsSearchQuery}" />
       </div>
       <div class="button-group">
         <button class="btn btn-purple" id="btn-add-audit"><i data-lucide="plus"></i> New Audit</button>
@@ -429,16 +409,16 @@ function renderAudits() {
 // 4. COMPLIANCE ISSUES REGISTER PANEL
 // ---------------------------------------------------------------------
 function renderComplianceIssues() {
-  const openCount = state.complianceIssues.filter(c => c.status === 'Open' || c.status === 'Overdue').length;
-  const overdueCount = state.complianceIssues.filter(c => c.status === 'Overdue').length;
-  const resolvedCount = state.complianceIssues.filter(c => c.status === 'Resolved').length;
+  const openCount = complianceIssues.filter(c => c.status === 'Open' || c.status === 'Overdue').length;
+  const overdueCount = complianceIssues.filter(c => c.status === 'Overdue').length;
+  const resolvedCount = complianceIssues.filter(c => c.status === 'Resolved').length;
 
-  const filtered = state.complianceIssues.filter(c => {
-    const matchesSearch = c.issue.toLowerCase().includes(state.complianceSearchQuery.toLowerCase()) || 
-                          c.id.toLowerCase().includes(state.complianceSearchQuery.toLowerCase()) ||
-                          c.owner.toLowerCase().includes(state.complianceSearchQuery.toLowerCase());
-    const matchesSeverity = state.complianceSeverityFilter === 'All Severities' || c.severity === state.complianceSeverityFilter;
-    const matchesStatus = state.complianceStatusFilter === 'All Statuses' || c.status === state.complianceStatusFilter;
+  const filtered = complianceIssues.filter(c => {
+    const matchesSearch = c.issue.toLowerCase().includes(complianceSearchQuery.toLowerCase()) || 
+                          c.id.toLowerCase().includes(complianceSearchQuery.toLowerCase()) ||
+                          c.owner.toLowerCase().includes(complianceSearchQuery.toLowerCase());
+    const matchesSeverity = complianceSeverityFilter === 'All Severities' || c.severity === complianceSeverityFilter;
+    const matchesStatus = complianceStatusFilter === 'All Statuses' || c.status === complianceStatusFilter;
     return matchesSearch && matchesSeverity && matchesStatus;
   });
 
@@ -492,18 +472,18 @@ function renderComplianceIssues() {
 
     <div class="table-actions">
       <div class="filters-row">
-        <input type="text" class="table-search" id="issue-search" placeholder="Search compliance issues..." value="${state.complianceSearchQuery}" />
+        <input type="text" class="table-search" id="issue-search" placeholder="Search compliance issues..." value="${complianceSearchQuery}" />
         <select class="filter-dropdown" id="issue-severity-filter">
-          <option ${state.complianceSeverityFilter === 'All Severities' ? 'selected' : ''}>All Severities</option>
-          <option ${state.complianceSeverityFilter === 'High' ? 'selected' : ''}>High</option>
-          <option ${state.complianceSeverityFilter === 'Medium' ? 'selected' : ''}>Medium</option>
-          <option ${state.complianceSeverityFilter === 'Low' ? 'selected' : ''}>Low</option>
+          <option ${complianceSeverityFilter === 'All Severities' ? 'selected' : ''}>All Severities</option>
+          <option ${complianceSeverityFilter === 'High' ? 'selected' : ''}>High</option>
+          <option ${complianceSeverityFilter === 'Medium' ? 'selected' : ''}>Medium</option>
+          <option ${complianceSeverityFilter === 'Low' ? 'selected' : ''}>Low</option>
         </select>
         <select class="filter-dropdown" id="issue-status-filter">
-          <option ${state.complianceStatusFilter === 'All Statuses' ? 'selected' : ''}>All Statuses</option>
-          <option ${state.complianceStatusFilter === 'Open' ? 'selected' : ''}>Open</option>
-          <option ${state.complianceStatusFilter === 'Overdue' ? 'selected' : ''}>Overdue</option>
-          <option ${state.complianceStatusFilter === 'Resolved' ? 'selected' : ''}>Resolved</option>
+          <option ${complianceStatusFilter === 'All Statuses' ? 'selected' : ''}>All Statuses</option>
+          <option ${complianceStatusFilter === 'Open' ? 'selected' : ''}>Open</option>
+          <option ${complianceStatusFilter === 'Overdue' ? 'selected' : ''}>Overdue</option>
+          <option ${complianceStatusFilter === 'Resolved' ? 'selected' : ''}>Resolved</option>
         </select>
       </div>
       <button class="btn btn-purple" id="btn-add-issue"><i data-lucide="plus"></i> Raise Issue</button>
@@ -551,7 +531,7 @@ function bindActivePanelEvents(container, pageKey) {
     const search = container.querySelector('#policy-search');
     if (search) {
       search.addEventListener('input', (e) => {
-        state.policiesSearchQuery = e.target.value;
+        policiesSearchQuery = e.target.value;
         const panel = container.querySelector('#governance-section-panel');
         if (panel) panel.innerHTML = renderPolicies();
         bindCardActions();
@@ -562,7 +542,7 @@ function bindActivePanelEvents(container, pageKey) {
     const filter = container.querySelector('#policy-scope-filter');
     if (filter) {
       filter.addEventListener('change', (e) => {
-        state.policiesScopeFilter = e.target.value;
+        policiesScopeFilter = e.target.value;
         refresh();
       });
     }
@@ -581,7 +561,7 @@ function bindActivePanelEvents(container, pageKey) {
       signBtns.forEach(btn => {
         btn.addEventListener('click', (e) => {
           const id = e.currentTarget.getAttribute('data-id');
-          const policy = state.policies.find(p => p.id === id);
+          const policy = policies.find(p => p.id === id);
           if (policy) {
             showSignPolicyModal(policy, refresh);
           }
@@ -595,13 +575,13 @@ function bindActivePanelEvents(container, pageKey) {
     const search = container.querySelector('#ack-search');
     if (search) {
       search.addEventListener('input', (e) => {
-        state.acksSearchQuery = e.target.value;
+        acksSearchQuery = e.target.value;
         const wrapper = container.querySelector('.data-table tbody');
         if (wrapper) {
-          const filtered = state.acknowledgements.filter(a => {
-            const matchesSearch = a.employeeName.toLowerCase().includes(state.acksSearchQuery.toLowerCase()) || 
-                                  a.policyTitle.toLowerCase().includes(state.acksSearchQuery.toLowerCase());
-            const matchesStatus = state.acksStatusFilter === 'All Statuses' || a.complianceState === state.acksStatusFilter;
+          const filtered = acknowledgements.filter(a => {
+            const matchesSearch = a.employeeName.toLowerCase().includes(acksSearchQuery.toLowerCase()) || 
+                                  a.policyTitle.toLowerCase().includes(acksSearchQuery.toLowerCase());
+            const matchesStatus = acksStatusFilter === 'All Statuses' || a.complianceState === acksStatusFilter;
             return matchesSearch && matchesStatus;
           });
           wrapper.innerHTML = filtered.map(a => `
@@ -620,7 +600,7 @@ function bindActivePanelEvents(container, pageKey) {
     const filter = container.querySelector('#ack-status-filter');
     if (filter) {
       filter.addEventListener('change', (e) => {
-        state.acksStatusFilter = e.target.value;
+        acksStatusFilter = e.target.value;
         refresh();
       });
     }
@@ -630,14 +610,14 @@ function bindActivePanelEvents(container, pageKey) {
     const search = container.querySelector('#audit-search');
     if (search) {
       search.addEventListener('input', (e) => {
-        state.auditsSearchQuery = e.target.value;
+        auditsSearchQuery = e.target.value;
         const panel = container.querySelector('#governance-section-panel');
         if (panel) {
           // Re-render only lists to preserve cursor and avoid overlay issues
-          const filteredAudits = state.audits.filter(a => {
-            return a.title.toLowerCase().includes(state.auditsSearchQuery.toLowerCase()) || 
-                   a.auditor.toLowerCase().includes(state.auditsSearchQuery.toLowerCase()) ||
-                   a.department.toLowerCase().includes(state.auditsSearchQuery.toLowerCase());
+          const filteredAudits = audits.filter(a => {
+            return a.title.toLowerCase().includes(auditsSearchQuery.toLowerCase()) || 
+                   a.auditor.toLowerCase().includes(auditsSearchQuery.toLowerCase()) ||
+                   a.department.toLowerCase().includes(auditsSearchQuery.toLowerCase());
           });
           const auditRows = filteredAudits.map(a => `
             <tr>
@@ -690,15 +670,15 @@ function bindActivePanelEvents(container, pageKey) {
     const search = container.querySelector('#issue-search');
     if (search) {
       search.addEventListener('input', (e) => {
-        state.complianceSearchQuery = e.target.value;
+        complianceSearchQuery = e.target.value;
         const tbody = container.querySelector('.view-card tbody');
         if (tbody) {
-          const filtered = state.complianceIssues.filter(c => {
-            const matchesSearch = c.issue.toLowerCase().includes(state.complianceSearchQuery.toLowerCase()) || 
-                                  c.id.toLowerCase().includes(state.complianceSearchQuery.toLowerCase()) ||
-                                  c.owner.toLowerCase().includes(state.complianceSearchQuery.toLowerCase());
-            const matchesSeverity = state.complianceSeverityFilter === 'All Severities' || c.severity === state.complianceSeverityFilter;
-            const matchesStatus = state.complianceStatusFilter === 'All Statuses' || c.status === state.complianceStatusFilter;
+          const filtered = complianceIssues.filter(c => {
+            const matchesSearch = c.issue.toLowerCase().includes(complianceSearchQuery.toLowerCase()) || 
+                                  c.id.toLowerCase().includes(complianceSearchQuery.toLowerCase()) ||
+                                  c.owner.toLowerCase().includes(complianceSearchQuery.toLowerCase());
+            const matchesSeverity = complianceSeverityFilter === 'All Severities' || c.severity === complianceSeverityFilter;
+            const matchesStatus = complianceStatusFilter === 'All Statuses' || c.status === complianceStatusFilter;
             return matchesSearch && matchesSeverity && matchesStatus;
           });
           tbody.innerHTML = filtered.map(c => `
@@ -726,7 +706,7 @@ function bindActivePanelEvents(container, pageKey) {
     const severityFilter = container.querySelector('#issue-severity-filter');
     if (severityFilter) {
       severityFilter.addEventListener('change', (e) => {
-        state.complianceSeverityFilter = e.target.value;
+        complianceSeverityFilter = e.target.value;
         refresh();
       });
     }
@@ -734,7 +714,7 @@ function bindActivePanelEvents(container, pageKey) {
     const statusFilter = container.querySelector('#issue-status-filter');
     if (statusFilter) {
       statusFilter.addEventListener('change', (e) => {
-        state.complianceStatusFilter = e.target.value;
+        complianceStatusFilter = e.target.value;
         refresh();
       });
     }
@@ -752,15 +732,15 @@ function bindActivePanelEvents(container, pageKey) {
       // Toggle status (Open/Resolved)
       const resolveBtns = container.querySelectorAll('.btn-toggle-resolve');
       resolveBtns.forEach(btn => {
-        btn.addEventListener('click', (e) => {
+        btn.addEventListener('click', async (e) => {
           const id = e.currentTarget.getAttribute('data-id');
-          const issue = state.complianceIssues.find(c => c.id === id);
+          const issue = complianceIssues.find(c => c.id === id);
           if (issue) {
             if (issue.status === 'Resolved') {
-              issue.status = issue.dueDate < SYSTEM_DATE ? 'Overdue' : 'Open';
+              await api.updateIssue({ id, status: 'Open' });
               showToast(`Compliance issue ${id} reopened successfully.`, 'info');
             } else {
-              issue.status = 'Resolved';
+              await api.updateIssue({ id, status: 'Resolved' });
               showToast(`Compliance issue ${id} marked as Resolved.`, 'success');
             }
             refresh();
@@ -773,7 +753,7 @@ function bindActivePanelEvents(container, pageKey) {
       editBtns.forEach(btn => {
         btn.addEventListener('click', (e) => {
           const id = e.currentTarget.getAttribute('data-id');
-          const issue = state.complianceIssues.find(c => c.id === id);
+          const issue = complianceIssues.find(c => c.id === id);
           if (issue) {
             showEditOwnerModal(issue, refresh);
           }
@@ -825,7 +805,7 @@ function showAddPolicyModal(onSave) {
         </div>
       </form>
     `,
-    onSubmit: (data) => {
+    onSubmit: async (data) => {
       if (!data.title || data.title.trim().length < 1 || data.title.length > 200) {
         showToast('Policy title must be between 1 and 200 characters.', 'warning');
         return;
@@ -839,24 +819,14 @@ function showAddPolicyModal(onSave) {
         return;
       }
 
-      const newPolicy = {
-        id: `pol-${state.policies.length + 1}`,
+      await api.createPolicy({
         title: data.title.trim(),
         version: data.version.trim(),
         status: 'Active',
         scope: data.scope,
         description: data.description.trim(),
         publishedDate: SYSTEM_DATE,
-        acknowledgedCount: 0,
-        totalRequired: data.scope === 'Global' ? 156 : (data.scope === 'Manufacturing' ? 42 : 83)
-      };
-
-      state.policies.push(newPolicy);
-
-      state.acknowledgements.push(
-        { id: `ack-sim-${Date.now()}-1`, employeeName: 'Mark Robinson', policyTitle: `${data.title} v${data.version}`, signedDate: 'Unsigned', complianceState: 'Pending' },
-        { id: `ack-sim-${Date.now()}-2`, employeeName: 'Alice Vance', policyTitle: `${data.title} v${data.version}`, signedDate: 'Unsigned', complianceState: 'Pending' }
-      );
+      });
 
       showToast(`ESG Policy "${data.title}" published successfully.`, 'success');
       onSave();
@@ -906,30 +876,17 @@ function showSignPolicyModal(policy, onSave) {
         });
       }
     },
-    onSubmit: (data) => {
+    onSubmit: async (data) => {
       if (!data.sigName || data.sigName.trim().length < 1 || data.sigName.length > 100) {
         showToast('Please enter your full name to sign.', 'warning');
         return;
       }
 
-      const pTitleWithVer = `${policy.title} v${policy.version}`;
-      let ack = state.acknowledgements.find(a => a.employeeName === data.sigName && a.policyTitle === pTitleWithVer);
-      
-      if (!ack) {
-        ack = {
-          id: `ack-${Date.now()}`,
-          employeeName: data.sigName.trim(),
-          policyTitle: pTitleWithVer,
-          signedDate: `${SYSTEM_DATE} 10:26`,
-          complianceState: 'Compliant'
-        };
-        state.acknowledgements.push(ack);
-      } else {
-        ack.signedDate = `${SYSTEM_DATE} 10:26`;
-        ack.complianceState = 'Compliant';
-      }
-
-      policy.acknowledgedCount = Math.min(policy.totalRequired, policy.acknowledgedCount + 1);
+      await api.acknowledgePolicy({
+        policyId: policy.id,
+        employeeName: data.sigName.trim(),
+        signedDate: `${SYSTEM_DATE} 10:26`,
+      });
 
       showToast(`Acknowledged "${policy.title}" successfully. Signature logged.`, 'success');
       onSave();
@@ -997,7 +954,7 @@ function showAddAuditModal(onSave) {
         </div>
       </form>
     `,
-    onSubmit: (data) => {
+    onSubmit: async (data) => {
       if (!data.title || data.title.trim().length < 1 || data.title.length > 200) {
         showToast('Audit title must be between 1 and 200 characters.', 'warning');
         return;
@@ -1015,36 +972,16 @@ function showAddAuditModal(onSave) {
         return;
       }
 
-      const auditId = `aud-${state.audits.length + 1}`;
-      const newAudit = {
-        id: auditId,
+      await api.createAudit({
         title: data.title.trim(),
         department: data.department,
         auditor: data.auditor.trim(),
         date: data.date,
         findings: data.findings,
         status: data.status
-      };
+      });
 
-      state.audits.push(newAudit);
-
-      const containsIssues = (data.findings || '').toLowerCase().includes('issue') || (data.findings || '').toLowerCase().includes('violation');
-      if (containsIssues) {
-        const issueId = `CMP-0${30 + state.complianceIssues.length}`;
-        state.complianceIssues.push({
-          id: issueId,
-          issue: `Audit finding: ${data.findings} during ${data.title}`,
-          severity: 'Medium',
-          department: data.department,
-          status: 'Open',
-          owner: 'Pending Assignment',
-          dueDate: SYSTEM_DATE,
-          auditRef: auditId
-        });
-        showToast(`Audit logged. Raised linked compliance issue ${issueId}.`, 'warning');
-      } else {
-        showToast(`Audit "${data.title}" successfully logged.`, 'success');
-      }
+      showToast(`Audit "${data.title}" successfully logged.`, 'success');
       onSave();
     }
   });
@@ -1101,7 +1038,7 @@ function showAddIssueModal(onSave) {
         </div>
       </form>
     `,
-    onSubmit: (data) => {
+    onSubmit: async (data) => {
       if (!data.issue || data.issue.trim().length < 1 || data.issue.length > 500) {
         showToast('Issue description must be between 1 and 500 characters.', 'warning');
         return;
@@ -1115,28 +1052,21 @@ function showAddIssueModal(onSave) {
         return;
       }
 
-      const issueId = `CMP-0${30 + state.complianceIssues.length}`;
-      
-      const newIssue = {
-        id: issueId,
+      await api.createIssue({
         issue: data.issue.trim(),
         severity: data.severity,
         department: data.department,
-        status: data.dueDate < SYSTEM_DATE ? 'Overdue' : 'Open',
         owner: data.owner.trim(),
         dueDate: data.dueDate,
-        auditRef: 'none'
-      };
-
-      state.complianceIssues.push(newIssue);
+      });
 
       const esgSettings = JSON.parse(localStorage.getItem('esg_settings') || '{}');
       const notifSettings = esgSettings.notifications || {};
       if (notifSettings.newComplianceIssue_inapp !== false) {
-        showToast(`New Compliance Issue Raised: ${issueId} — ${data.issue} (${data.severity})`, 'warning');
+        showToast(`New Compliance Issue Raised — ${data.issue} (${data.severity})`, 'warning');
       }
       if (notifSettings.newComplianceIssue_email) {
-        console.log(`Email alert sent: New compliance issue ${issueId} raised. Severity: ${data.severity}. Owner: ${data.owner}`);
+        console.log(`Email alert sent: New compliance issue raised. Severity: ${data.severity}. Owner: ${data.owner}`);
       }
 
       onSave();
@@ -1172,7 +1102,7 @@ function showEditOwnerModal(issue, onSave) {
         </div>
       </form>
     `,
-    onSubmit: (data) => {
+    onSubmit: async (data) => {
       if (!data.owner || data.owner.trim().length < 1 || data.owner.length > 100) {
         showToast('Owner name must be between 1 and 100 characters.', 'warning');
         return;
@@ -1182,12 +1112,11 @@ function showEditOwnerModal(issue, onSave) {
         return;
       }
 
-      issue.owner = data.owner.trim();
-      issue.dueDate = data.dueDate;
-      
-      if (issue.status !== 'Resolved') {
-        issue.status = data.dueDate < SYSTEM_DATE ? 'Overdue' : 'Open';
-      }
+      await api.updateIssue({
+        id: issue.id,
+        owner: data.owner.trim(),
+        dueDate: data.dueDate,
+      });
 
       showToast(`Compliance issue ${issue.id} owner and deadline updated.`, 'success');
       onSave();
@@ -1241,11 +1170,11 @@ function createModal({ title, bodyHtml, onSubmit, onMount }) {
   // Form submit handling
   const form = overlay.querySelector('#gov-modal-form');
   if (form) {
-    form.addEventListener('submit', (e) => {
+    form.addEventListener('submit', async (e) => {
       e.preventDefault();
       const formData = new FormData(form);
       const data = Object.fromEntries(formData.entries());
-      onSubmit(data);
+      await onSubmit(data);
       closeModal();
     });
   }
@@ -1262,14 +1191,14 @@ function createModal({ title, bodyHtml, onSubmit, onMount }) {
 function triggerExport(format) {
   if (format === 'csv') {
     const csvHeaders = ['Title', 'Department', 'Auditor', 'Date', 'Findings', 'Status'];
-    const csvRows = state.audits.map(a => [a.title, a.department, a.auditor, a.date, a.findings, a.status].map(val => `"${val}"`).join(','));
+    const csvRows = audits.map(a => [a.title, a.department, a.auditor, a.date, a.findings, a.status].map(val => `"${val}"`).join(','));
     const csvContent = [csvHeaders.join(','), ...csvRows].join('\n');
     downloadDataFile('governance_audits_report.csv', csvContent, 'text/csv');
     showToast('Downloaded CSV audits sheet.', 'success');
   } 
   else if (format === 'excel') {
     const tabHeaders = ['Title', 'Department', 'Auditor', 'Date', 'Findings', 'Status'];
-    const tabRows = state.audits.map(a => [a.title, a.department, a.auditor, a.date, a.findings, a.status].join('\t'));
+    const tabRows = audits.map(a => [a.title, a.department, a.auditor, a.date, a.findings, a.status].join('\t'));
     const tabContent = [tabHeaders.join('\t'), ...tabRows].join('\n');
     downloadDataFile('governance_audits_report.xls', tabContent, 'application/vnd.ms-excel');
     showToast('Downloaded Excel XML sheet.', 'success');
@@ -1278,7 +1207,7 @@ function triggerExport(format) {
     let report = 'ECOSPHERE ESG PLATFORM - GOVERNANCE AUDITS REPORT\n';
     report += `Generated at: ${SYSTEM_DATE} 10:26\n`;
     report += '===================================================\n\n';
-    state.audits.forEach(a => {
+    audits.forEach(a => {
       report += `Audit Title  : ${a.title}\n`;
       report += `Department   : ${a.department}\n`;
       report += `Auditor      : ${a.auditor}\n`;

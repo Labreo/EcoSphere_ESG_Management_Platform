@@ -2,42 +2,38 @@
  * EcoSphere Social Module View Component - Unified, Interactive & Top-Nav Layout
  */
 
-import { sanitize } from '../utils/validation.js';
+import * as api from '../api/social.js';
+import { showToast, renderLoading } from '../api/toast.js';
 
-// Module-level in-memory state, persisting across internal tab switching
-const state = {
-  activities: [
-    { id: '1', emoji: '🌳', title: 'Tree Plantation', joinedCount: 24, requirement: 'Evidence Required', xp: 50, joined: false },
-    { id: '2', emoji: '🩸', title: 'Blood Donation', joinedCount: 18, requirement: 'Evidence Required', xp: 50, joined: false },
-    { id: '3', emoji: '🏖️', title: 'Beach Cleanup', joinedCount: 31, requirement: 'Open', xp: 50, joined: false },
-    { id: '4', emoji: '📚', title: 'ESG Workshop', joinedCount: 52, requirement: 'Open', xp: 30, joined: false }
-  ],
-  approvalQueue: [
-    { id: 'q1', employee: 'Aditi Rao', activity: 'Tree Plantation', proof: 'photo.jpg', points: 50, status: 'Pending' },
-    { id: 'q2', employee: 'Karan Shah', activity: 'ESG Workshop', proof: 'cert.pdf', points: 30, status: 'Approved' }
-  ],
-  trainings: [
-    { id: 't1', title: 'ESG Fundamentals for Business', category: 'Required', completionRate: 94, xp: 100, status: 'Not Started' },
-    { id: 't2', title: 'Diversity, Equity & Inclusion', category: 'Required', completionRate: 88, xp: 100, status: 'Not Started' },
-    { id: 't3', title: 'Information Security & Compliance', category: 'Required', completionRate: 100, xp: 150, status: 'Completed' },
-    { id: 't4', title: 'Environmental Health & Safety', category: 'Required', completionRate: 72, xp: 120, status: 'In Progress' },
-    { id: 't5', title: 'Ethical Supply Chain Principles', category: 'Elective', completionRate: 45, xp: 80, status: 'Not Started' }
-  ],
-  trainingLog: [
-    { id: 'l1', employee: 'Aditi Rao', course: 'ESG Fundamentals for Business', progress: 100, completedDate: '2026-07-10', xp: 100 },
-    { id: 'l2', employee: 'Karan Shah', course: 'Environmental Health & Safety', progress: 60, completedDate: '-', xp: 0 },
-    { id: 'l3', employee: 'Sarah Jenkins', course: 'Information Security & Compliance', progress: 100, completedDate: '2026-07-08', xp: 150 }
-  ],
-  selectedQueueId: null,
-  selectedParticipationId: null
-};
+let activities = [];
+let approvalQueue = [];
+let trainings = [
+  { id: 't1', title: 'ESG Fundamentals for Business', category: 'Required', completionRate: 94, xp: 100, status: 'Not Started' },
+  { id: 't2', title: 'Diversity, Equity & Inclusion', category: 'Required', completionRate: 88, xp: 100, status: 'Not Started' },
+  { id: 't3', title: 'Information Security & Compliance', category: 'Required', completionRate: 100, xp: 150, status: 'Completed' },
+  { id: 't4', title: 'Environmental Health & Safety', category: 'Required', completionRate: 72, xp: 120, status: 'In Progress' },
+  { id: 't5', title: 'Ethical Supply Chain Principles', category: 'Elective', completionRate: 45, xp: 80, status: 'Not Started' }
+];
+let trainingLog = [
+  { id: 'l1', employee: 'Aditi Rao', course: 'ESG Fundamentals for Business', progress: 100, completedDate: '2026-07-10', xp: 100 },
+  { id: 'l2', employee: 'Karan Shah', course: 'Environmental Health & Safety', progress: 60, completedDate: '-', xp: 0 },
+  { id: 'l3', employee: 'Sarah Jenkins', course: 'Information Security & Compliance', progress: 100, completedDate: '2026-07-08', xp: 150 }
+];
+let selectedQueueId = null;
+let selectedParticipationId = null;
 
 /**
  * Main render function entry point
  */
-export function renderSocialPage(container, pageKey) {
-  // Set default sub-route if needed
+export async function renderSocialPage(container, pageKey) {
   if (!pageKey) pageKey = 'csr-activities';
+  renderLoading(container);
+  try {
+    const data = await api.getActivities();
+    activities = data;
+  } catch (err) {
+    showToast('Failed to load activities: ' + err.message, 'error');
+  }
 
   const socialPageTitles = { 'csr-activities': 'CSR Activities', 'employee-participation': 'Employee Participation', 'diversity-dashboard': 'Diversity Dashboard', 'training-completion': 'Training Completion' };
 
@@ -84,6 +80,20 @@ export function renderSocialPage(container, pageKey) {
   if (window.lucide) {
     window.lucide.createIcons();
   }
+
+  // For diversity dashboard, fetch metrics from API
+  if (pageKey === 'diversity-dashboard') {
+    try {
+      const metrics = await api.getDiversityMetrics();
+      const panel = container.querySelector('#social-section-panel');
+      if (panel) {
+        panel.innerHTML = renderDiversityDashboard(metrics);
+        if (window.lucide) window.lucide.createIcons();
+      }
+    } catch (err) {
+      showToast('Failed to load diversity metrics: ' + err.message, 'error');
+    }
+  }
 }
 
 /**
@@ -108,7 +118,7 @@ function renderActiveSectionPanel(key) {
 // 1. CSR Activities Panel
 // ----------------------------------------------------
 function renderCSRActivities() {
-  const cardsHtml = state.activities.map(a => `
+  const cardsHtml = activities.map(a => `
     <div class="glass-card csr-activity-card ${a.joined ? 'joined' : ''}" data-id="${a.id}">
       <div class="csr-card-top">
         <div class="csr-card-header-row">
@@ -124,8 +134,8 @@ function renderCSRActivities() {
     </div>
   `).join('');
 
-  const queueRows = state.approvalQueue.map(q => {
-    const isSelected = state.selectedQueueId === q.id;
+  const queueRows = approvalQueue.map(q => {
+    const isSelected = selectedQueueId === q.id;
     let statusClass = 'status-pill-pending';
     if (q.status === 'Approved') statusClass = 'status-pill-approved';
     if (q.status === 'Rejected') statusClass = 'status-pill-rejected';
@@ -141,7 +151,7 @@ function renderCSRActivities() {
     `;
   }).join('');
 
-  const buttonsDisabled = state.selectedQueueId ? '' : 'disabled';
+  const buttonsDisabled = selectedQueueId ? '' : 'disabled';
 
   return `
     <div class="csr-actions-bar">
@@ -186,17 +196,17 @@ function renderCSRActivities() {
 // 2. Employee Participation Panel
 // ----------------------------------------------------
 function renderEmployeeParticipation() {
-  const pendingCount = state.approvalQueue.filter(q => q.status === 'Pending').length;
-  const approvedCount = state.approvalQueue.filter(q => q.status === 'Approved').length;
+  const pendingCount = approvalQueue.filter(q => q.status === 'Pending').length;
+  const approvedCount = approvalQueue.filter(q => q.status === 'Approved').length;
 
   // Calculate dynamic XP
   const basePoints = 33600;
-  const dynamicPoints = state.approvalQueue
+  const dynamicPoints = approvalQueue
     .filter(q => q.status === 'Approved')
     .reduce((sum, q) => sum + q.points, 0) * 10;
   const totalXP = basePoints + dynamicPoints;
 
-  const rows = state.approvalQueue.map(q => {
+  const rows = approvalQueue.map(q => {
     let statusClass = 'status-pill-pending';
     if (q.status === 'Approved') statusClass = 'status-pill-approved';
     if (q.status === 'Rejected') statusClass = 'status-pill-rejected';
@@ -267,23 +277,23 @@ function renderEmployeeParticipation() {
 // ----------------------------------------------------
 // 3. Diversity Dashboard Panel
 // ----------------------------------------------------
-function renderDiversityDashboard() {
+function renderDiversityDashboard(metrics) {
   return `
     <div class="grid-3">
       <div class="glass-card stat-box">
         <span class="stat-lbl">Women in Leadership</span>
-        <h3>42%</h3>
-        <span class="sub-label">Goal: 50% by 2028</span>
+        <h3>${metrics?.women_in_leadership ?? '42%'}</h3>
+        <span class="sub-label">${metrics?.women_leadership_goal ?? 'Goal: 50% by 2028'}</span>
       </div>
       <div class="glass-card stat-box">
         <span class="stat-lbl">Global Demographics</span>
-        <h3>12 Nationalities</h3>
-        <span class="sub-label">Across 3 regional offices</span>
+        <h3>${metrics?.global_demographics ?? '12 Nationalities'}</h3>
+        <span class="sub-label">${metrics?.demographics_desc ?? 'Across 3 regional offices'}</span>
       </div>
       <div class="glass-card stat-box">
         <span class="stat-lbl">Inclusion Index Score</span>
-        <h3>8.4 / 10</h3>
-        <span class="sub-label">From annual survey results</span>
+        <h3>${metrics?.inclusion_score ?? '8.4 / 10'}</h3>
+        <span class="sub-label">${metrics?.inclusion_desc ?? 'From annual survey results'}</span>
       </div>
     </div>
 
@@ -397,17 +407,17 @@ function renderDiversityDashboard() {
 // 4. Training Completion Panel
 // ----------------------------------------------------
 function renderTrainingCompletion() {
-  const completedTrainings = state.trainings.filter(t => t.status === 'Completed').length;
-  const inProgressTrainings = state.trainings.filter(t => t.status === 'In Progress').length;
+  const completedTrainings = trainings.filter(t => t.status === 'Completed').length;
+  const inProgressTrainings = trainings.filter(t => t.status === 'In Progress').length;
 
   // Calculate dynamic training XP
   const baseTrainingXP = 24000;
-  const userTrainingXP = state.trainings
+  const userTrainingXP = trainings
     .filter(t => t.status === 'Completed')
     .reduce((sum, t) => sum + t.xp, 0);
   const totalTrainingXP = baseTrainingXP + userTrainingXP;
 
-  const cardsHtml = state.trainings.map(t => {
+  const cardsHtml = trainings.map(t => {
     let statusClass = 'status-pill-pending';
     let btnText = 'Start Course';
     let btnClass = 'btn-info';
@@ -450,7 +460,7 @@ function renderTrainingCompletion() {
     `;
   }).join('');
 
-  const logRows = state.trainingLog.map(l => {
+  const logRows = trainingLog.map(l => {
     return `
       <tr>
         <td><strong>${l.employee}</strong></td>
@@ -473,7 +483,7 @@ function renderTrainingCompletion() {
     <div class="grid-3">
       <div class="glass-card stat-box border-info">
         <span class="stat-lbl">Required Modules Completed</span>
-        <h3>${completedTrainings} / ${state.trainings.filter(t => t.category === 'Required').length}</h3>
+        <h3>${completedTrainings} / ${trainings.filter(t => t.category === 'Required').length}</h3>
       </div>
       <div class="glass-card stat-box">
         <span class="stat-lbl">Modules In Progress</span>
@@ -528,36 +538,32 @@ function bindActivePanelEvents(container, pageKey) {
     // 2. Join buttons inside cards
     const joinButtons = container.querySelectorAll('.join-btn');
     joinButtons.forEach(btn => {
-      btn.addEventListener('click', (e) => {
+      btn.addEventListener('click', async (e) => {
         e.stopPropagation();
         const id = btn.getAttribute('data-id');
-        const activity = state.activities.find(a => a.id === id);
+        const activity = activities.find(a => a.id === id);
         if (!activity) return;
 
         if (activity.joined) {
           // Leave activity
           activity.joined = false;
           activity.joinedCount--;
-          // Remove any queue entry created by user
-          state.approvalQueue = state.approvalQueue.filter(q => !(q.employee === 'Aditi Rao' && q.activity === activity.title));
+          approvalQueue = approvalQueue.filter(q => !(q.employee === 'Aditi Rao' && q.activity === activity.title));
           renderSocialPage(container, pageKey);
         } else {
           if (activity.requirement === 'Open') {
-            // Auto join immediately
             activity.joined = true;
             activity.joinedCount++;
-            // Auto-insert an approved entry
-            state.approvalQueue.push({
-              id: 'q_' + Date.now(),
-              employee: 'Aditi Rao',
-              activity: activity.title,
-              proof: 'Auto-verified',
-              points: activity.xp,
-              status: 'Approved'
-            });
+            try {
+              await api.joinActivity(id);
+            } catch (err) {
+              showToast('Failed to join activity: ' + err.message, 'error');
+              activity.joined = false;
+              activity.joinedCount--;
+              return;
+            }
             renderSocialPage(container, pageKey);
           } else {
-            // Open proof submission modal
             showSubmitProofModal(container, activity);
           }
         }
@@ -569,10 +575,10 @@ function bindActivePanelEvents(container, pageKey) {
     queueRows.forEach(row => {
       row.addEventListener('click', () => {
         const id = row.getAttribute('data-id');
-        if (state.selectedQueueId === id) {
-          state.selectedQueueId = null;
+        if (selectedQueueId === id) {
+          selectedQueueId = null;
         } else {
-          state.selectedQueueId = id;
+          selectedQueueId = id;
         }
         renderSocialPage(container, pageKey);
       });
@@ -581,21 +587,26 @@ function bindActivePanelEvents(container, pageKey) {
     // 4. Approve button
     const btnApprove = container.querySelector('#btn-approve-submission');
     if (btnApprove) {
-      btnApprove.addEventListener('click', () => {
-        if (!state.selectedQueueId) return;
-        const entry = state.approvalQueue.find(q => q.id === state.selectedQueueId);
+      btnApprove.addEventListener('click', async () => {
+        if (!selectedQueueId) return;
+        const entry = approvalQueue.find(q => q.id === selectedQueueId);
         if (entry) {
-          // Check evidence required toggle in Settings
           const settings = JSON.parse(localStorage.getItem('esg_settings') || '{}');
-          const isEvidenceRequired = settings.evidenceRequirement !== false; // default true
+          const isEvidenceRequired = settings.evidenceRequirement !== false;
           if (isEvidenceRequired && (!entry.proof || entry.proof.trim() === '' || entry.proof.toLowerCase() === 'none')) {
             showSocialToast('Approval Blocked: Proof/evidence file is required when "Require evidence for all CSR activities" is active.', 'warning');
+            return;
+          }
+          try {
+            await api.approveParticipation(selectedQueueId);
+          } catch (err) {
+            showToast('Failed to approve: ' + err.message, 'error');
             return;
           }
           entry.status = 'Approved';
           showSocialToast(`Submission for "${entry.activity}" approved successfully!`, 'success');
         }
-        state.selectedQueueId = null;
+        selectedQueueId = null;
         renderSocialPage(container, pageKey);
       });
     }
@@ -604,13 +615,13 @@ function bindActivePanelEvents(container, pageKey) {
     const btnReject = container.querySelector('#btn-reject-submission');
     if (btnReject) {
       btnReject.addEventListener('click', () => {
-        if (!state.selectedQueueId) return;
-        const entry = state.approvalQueue.find(q => q.id === state.selectedQueueId);
+        if (!selectedQueueId) return;
+        const entry = approvalQueue.find(q => q.id === selectedQueueId);
         if (entry) {
           entry.status = 'Rejected';
           showSocialToast(`Submission for "${entry.activity}" rejected.`, 'success');
         }
-        state.selectedQueueId = null;
+        selectedQueueId = null;
         renderSocialPage(container, pageKey);
       });
     }
@@ -619,16 +630,21 @@ function bindActivePanelEvents(container, pageKey) {
     // Mini Approve/Reject action buttons inside the table rows
     const approveButtons = container.querySelectorAll('.btn-approve');
     approveButtons.forEach(btn => {
-      btn.addEventListener('click', (e) => {
+      btn.addEventListener('click', async (e) => {
         e.stopPropagation();
         const id = btn.getAttribute('data-id');
-        const entry = state.approvalQueue.find(q => q.id === id);
+        const entry = approvalQueue.find(q => q.id === id);
         if (entry) {
-          // Check evidence required toggle in Settings
           const settings = JSON.parse(localStorage.getItem('esg_settings') || '{}');
           const isEvidenceRequired = settings.evidenceRequirement !== false;
           if (isEvidenceRequired && (!entry.proof || entry.proof.trim() === '' || entry.proof.toLowerCase() === 'none')) {
             showSocialToast('Approval Blocked: Proof/evidence file is required when "Require evidence for all CSR activities" is active.', 'warning');
+            return;
+          }
+          try {
+            await api.approveParticipation(id);
+          } catch (err) {
+            showToast('Failed to approve: ' + err.message, 'error');
             return;
           }
           entry.status = 'Approved';
@@ -643,7 +659,7 @@ function bindActivePanelEvents(container, pageKey) {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
         const id = btn.getAttribute('data-id');
-        const entry = state.approvalQueue.find(q => q.id === id);
+        const entry = approvalQueue.find(q => q.id === id);
         if (entry) {
           entry.status = 'Rejected';
           showSocialToast(`Submission for "${entry.activity}" rejected.`, 'success');
@@ -658,15 +674,15 @@ function bindActivePanelEvents(container, pageKey) {
     actionBtns.forEach(btn => {
       btn.addEventListener('click', () => {
         const id = btn.getAttribute('data-id');
-        const course = state.trainings.find(t => t.id === id);
+        const course = trainings.find(t => t.id === id);
         if (!course) return;
 
         if (course.status === 'Not Started') {
           // Transition to In Progress
           course.status = 'In Progress';
-          const logEntry = state.trainingLog.find(l => l.employee === 'Aditi Rao' && l.course === course.title);
+          const logEntry = trainingLog.find(l => l.employee === 'Aditi Rao' && l.course === course.title);
           if (!logEntry) {
-            state.trainingLog.push({
+            trainingLog.push({
               id: 'l_' + Date.now(),
               employee: 'Aditi Rao',
               course: course.title,
@@ -680,13 +696,13 @@ function bindActivePanelEvents(container, pageKey) {
           // Transition to Completed
           course.status = 'Completed';
           course.completionRate = Math.min(course.completionRate + 1, 100);
-          const logEntry = state.trainingLog.find(l => l.employee === 'Aditi Rao' && l.course === course.title);
+          const logEntry = trainingLog.find(l => l.employee === 'Aditi Rao' && l.course === course.title);
           if (logEntry) {
             logEntry.progress = 100;
             logEntry.completedDate = new Date().toISOString().split('T')[0];
             logEntry.xp = course.xp;
           } else {
-            state.trainingLog.push({
+            trainingLog.push({
               id: 'l_' + Date.now(),
               employee: 'Aditi Rao',
               course: course.title,
@@ -768,14 +784,13 @@ function showNewActivityModal(container) {
   backdrop.querySelector('#btn-close-modal').addEventListener('click', closeModal);
   backdrop.querySelector('#btn-cancel-modal').addEventListener('click', closeModal);
 
-  backdrop.querySelector('#social-modal-form').addEventListener('submit', (e) => {
+  backdrop.querySelector('#social-modal-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
     const title = formData.get('title');
     const xpRaw = formData.get('xp');
     const xpVal = parseInt(xpRaw, 10);
-    const joinedRaw = formData.get('joinedCount');
-    const joinedVal = parseInt(joinedRaw, 10);
+    const requirement = formData.get('requirement');
 
     if (!title || title.trim().length < 1 || title.length > 200) {
       showToast('Activity title must be between 1 and 200 characters.', 'warning');
@@ -785,22 +800,21 @@ function showNewActivityModal(container) {
       showToast('XP reward must be between 0 and 10000.', 'warning');
       return;
     }
-    if (isNaN(joinedVal) || joinedVal < 0 || joinedVal > 10000) {
-      showToast('Joined count must be between 0 and 10000.', 'warning');
+
+    try {
+      await api.createActivity({
+        title: title.trim(),
+        description: '',
+        category_id: 1,
+        date: new Date().toISOString().split('T')[0],
+        points_reward: xpVal,
+        max_participants: 50,
+        status: requirement === 'Open' ? 'Upcoming' : 'Ongoing'
+      });
+    } catch (err) {
+      showToast('Failed to create activity: ' + err.message, 'error');
       return;
     }
-
-    const newAct = {
-      id: 'act_' + Date.now(),
-      emoji: formData.get('emoji') || '🌟',
-      title: title.trim(),
-      xp: xpVal,
-      requirement: formData.get('requirement'),
-      joinedCount: joinedVal,
-      joined: false
-    };
-
-    state.activities.push(newAct);
     closeModal();
     renderSocialPage(container, 'csr-activities');
   });
@@ -864,7 +878,7 @@ function showSubmitProofModal(container, activity) {
   backdrop.querySelector('#btn-close-modal').addEventListener('click', closeModal);
   backdrop.querySelector('#btn-cancel-modal').addEventListener('click', closeModal);
 
-  backdrop.querySelector('#social-modal-form').addEventListener('submit', (e) => {
+  backdrop.querySelector('#social-modal-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
     const employee = formData.get('employee');
@@ -879,15 +893,12 @@ function showSubmitProofModal(container, activity) {
       return;
     }
 
-    state.approvalQueue.push({
-      id: 'q_' + Date.now(),
-      employee: employee.trim(),
-      activity: activity.title,
-      proof,
-      points: activity.xp,
-      status: 'Pending'
-    });
-
+    try {
+      await api.submitProof(activity.id, proof);
+    } catch (err) {
+      showToast('Failed to submit proof: ' + err.message, 'error');
+      return;
+    }
     activity.joined = true;
     activity.joinedCount++;
     closeModal();

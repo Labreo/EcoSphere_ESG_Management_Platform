@@ -2,43 +2,38 @@
  * EcoSphere Environmental Module View Component - Unified, Interactive & Top-Nav Layout
  */
 
-import { validateForm, sanitize } from '../utils/validation.js';
+import * as api from '../api/environmental.js';
+import { renderLoading } from '../api/toast.js';
 
-// Module-level in-memory state, persisting across internal tab switching
-const state = {
-  emissionFactors: [
-    { id: '1', activity: 'Grid Electricity', category: 'Scope 2 (Indirect)', value: 0.385, unit: 'kg CO2e / kWh', source: 'DEFRA 2025', status: 'Active' },
-    { id: '2', activity: 'Diesel (Mobile Burn)', category: 'Scope 1 (Direct)', value: 2.687, unit: 'kg CO2e / Litre', source: 'EPA 2024', status: 'Active' },
-    { id: '3', activity: 'Natural Gas', category: 'Scope 1 (Direct)', value: 2.021, unit: 'kg CO2e / m³', source: 'DEFRA 2025', status: 'Active' },
-    { id: '4', activity: 'Economy Flight (Short Haul)', category: 'Scope 3 (Travel)', value: 0.158, unit: 'kg CO2e / km-pax', source: 'IPCC Tier 1', status: 'Active' }
-  ],
-  productProfiles: [
-    { id: '1', sku: 'SKU-9902-EL', name: 'EcoCharger Max', class: 'Electronics', carbon: 1.25, recyclability: 94, xp: 5 },
-    { id: '2', sku: 'SKU-4819-PK', name: 'BioSleeve Case 13"', class: 'Packaging', carbon: 0.42, recyclability: 100, xp: 2 },
-    { id: '3', sku: 'SKU-2051-HW', name: 'DeskOrganizer Pro', class: 'Hardware', carbon: 3.88, recyclability: 78, xp: 8 }
-  ],
-  carbonTransactions: [
-    { id: '1', date: '2026-07-12', dept: 'Logistics HQ', source: 'Electricity', qty: '10,930 kWh', calculated: 4.21, origin: 'ERP (Auto)' },
-    { id: '2', date: '2026-07-11', dept: 'Sales Ops', source: 'Fleet Diesel', qty: '688 Litres', calculated: 1.85, origin: 'ERP (Auto)' },
-    { id: '3', date: '2026-07-10', dept: 'Admin HQ', source: 'Business Travel', qty: '5,820 km', calculated: 0.92, origin: 'Manual Entry' }
-  ],
-  environmentalGoals: [
-    { id: '1', name: 'Reduce Fleet Emissions', department: 'Logistics', target: 500, current: 390, deadline: '2026-12-31', status: 'Active' },
-    { id: '2', name: 'Cut Packaging Waste', department: 'Manufacturing', target: 120, current: 98, deadline: '2026-09-30', status: 'On Track' },
-    { id: '3', name: 'Office Energy Cut', department: 'Corporate', target: 80, current: 80, deadline: '2026-06-30', status: 'Completed' }
-  ],
-  selectedGoalId: null,
-  goalsSearchQuery: '',
-  factorsSearchQuery: '',
-  productsFilterClass: 'All Product Classes'
-};
+let emissionFactors = [];
+let productProfiles = [];
+let carbonTransactions = [];
+let environmentalGoals = [];
+let selectedGoalId = null;
+let goalsSearchQuery = '';
+let factorsSearchQuery = '';
+let productsFilterClass = 'All Product Classes';
 
 /**
  * Main render function entry point
  */
-export function renderEnvironmentalPage(container, pageKey) {
-  // Clear selection whenever we render/re-render
-  state.selectedGoalId = null;
+export async function renderEnvironmentalPage(container, pageKey) {
+  selectedGoalId = null;
+  renderLoading(container);
+
+  try {
+    const [factors, products, goals] = await Promise.all([
+      api.getFactors(),
+      api.getProducts(),
+      api.getGoals(),
+    ]);
+    emissionFactors = factors;
+    productProfiles = products;
+    environmentalGoals = goals;
+    carbonTransactions = [];
+  } catch (err) {
+    showToast('Failed to load data: ' + err.message, 'error');
+  }
 
   const envPageTitles = { 'emission-factors': 'Emission Factors', 'product-esg-profiles': 'Product ESG Profiles', 'carbon-transactions': 'Carbon Transactions', 'goals': 'Environmental Goals' };
 
@@ -109,7 +104,7 @@ function renderActiveSectionPanel(key) {
 // 1. EMISSION FACTORS VIEW
 // ---------------------------------------------------------------------
 function renderEmissionFactors() {
-  const factorRows = state.emissionFactors.map(f => `
+  const factorRows = emissionFactors.map(f => `
     <tr>
       <td><strong class="factor-activity">${f.activity}</strong></td>
       <td class="factor-category">${f.category}</td>
@@ -180,7 +175,7 @@ function renderProductESGProfiles() {
 }
 
 function renderProductCardsHTML() {
-  return state.productProfiles.map(p => {
+  return productProfiles.map(p => {
     const score = getProductScore(p.recyclability);
     return `
       <div class="glass-card product-card" data-class="${p.class}">
@@ -214,7 +209,7 @@ function renderProductCardsHTML() {
 // 3. CARBON TRANSACTIONS VIEW
 // ---------------------------------------------------------------------
 function renderCarbonTransactions() {
-  const txRows = state.carbonTransactions.map(t => `
+  const txRows = carbonTransactions.map(t => `
     <tr>
       <td>${t.date}</td>
       <td><strong>${t.dept}</strong></td>
@@ -225,7 +220,7 @@ function renderCarbonTransactions() {
     </tr>
   `).join('');
 
-  const factorOptions = state.emissionFactors.map(f => `
+  const factorOptions = emissionFactors.map(f => `
     <option value="${f.id}">${f.activity} (${f.source})</option>
   `).join('');
 
@@ -294,9 +289,9 @@ function renderCarbonTransactions() {
 // 4. ENVIRONMENTAL GOALS VIEW (Active in Mockup)
 // ---------------------------------------------------------------------
 function renderEnvironmentalGoals() {
-  const goalRows = state.environmentalGoals.map(g => {
+  const goalRows = environmentalGoals.map(g => {
     const progress = Math.min(100, Math.max(0, Math.round((g.current / g.target) * 100)));
-    const isSelected = state.selectedGoalId === g.id;
+    const isSelected = selectedGoalId === g.id;
 
     // Status outlines mapping strictly to user request:
     // Green outlines for Active / On Track, Blue outline for Completed
@@ -408,12 +403,12 @@ function bindEmissionFactorsEvents(container) {
   const searchInput = container.querySelector('#factors-search');
   if (searchInput) {
     searchInput.addEventListener('input', (e) => {
-      state.factorsSearchQuery = e.target.value.toLowerCase();
+      factorsSearchQuery = e.target.value.toLowerCase();
       const rows = container.querySelectorAll('.factors-table-body tr');
       rows.forEach(row => {
         const activity = row.querySelector('.factor-activity').textContent.toLowerCase();
         const category = row.querySelector('.factor-category').textContent.toLowerCase();
-        if (activity.includes(state.factorsSearchQuery) || category.includes(state.factorsSearchQuery)) {
+        if (activity.includes(factorsSearchQuery) || category.includes(factorsSearchQuery)) {
           row.style.display = '';
         } else {
           row.style.display = 'none';
@@ -427,7 +422,7 @@ function bindEmissionFactorsEvents(container) {
     btn.addEventListener('click', (e) => {
       e.stopPropagation();
       const id = btn.getAttribute('data-id');
-      const factor = state.emissionFactors.find(f => f.id === id);
+      const factor = emissionFactors.find(f => f.id === id);
       if (!factor) return;
 
       const fieldsHtml = `
@@ -465,20 +460,20 @@ function bindEmissionFactorsEvents(container) {
         </div>
       `;
 
-      openModal('Edit Emission Factor', fieldsHtml, (data) => {
-        const val = parseFloat(data.value);
-        if (isNaN(val) || val <= 0) {
-          showToast('Factor value must be a positive number.', 'warning');
-          return;
+      openModal('Edit Emission Factor', fieldsHtml, async (data) => {
+        try {
+          await api.updateFactor(id, {
+            activity: data.activity,
+            value: data.value,
+            unit: data.unit,
+            source: data.source,
+            status: data.status,
+          });
+          showToast('Emission factor updated successfully.', 'success');
+          renderEnvironmentalPage(container, 'emission-factors');
+        } catch (err) {
+          showToast('Failed to update factor: ' + err.message, 'error');
         }
-        factor.activity = data.activity;
-        factor.category = data.category;
-        factor.value = val;
-        factor.unit = data.unit;
-        factor.source = data.source;
-        factor.status = data.status;
-        showToast('Emission factor updated successfully.', 'success');
-        renderEnvironmentalPage(container, 'emission-factors');
       });
     });
   });
@@ -521,24 +516,20 @@ function bindEmissionFactorsEvents(container) {
         </div>
       `;
 
-      openModal('Add New Emission Factor', fieldsHtml, (data) => {
-        const val = parseFloat(data.value);
-        if (isNaN(val) || val <= 0) {
-          showToast('Factor value must be a positive number.', 'warning');
-          return;
+      openModal('Add New Emission Factor', fieldsHtml, async (data) => {
+        try {
+          await api.createFactor({
+            activity: data.activity,
+            value: data.value,
+            unit: data.unit,
+            source: data.source,
+            status: data.status,
+          });
+          showToast('New emission factor added successfully.', 'success');
+          renderEnvironmentalPage(container, 'emission-factors');
+        } catch (err) {
+          showToast('Failed to add factor: ' + err.message, 'error');
         }
-        const newFactor = {
-          id: String(state.emissionFactors.length + 1),
-          activity: data.activity,
-          category: data.category,
-          value: val,
-          unit: data.unit,
-          source: data.source,
-          status: data.status
-        };
-        state.emissionFactors.push(newFactor);
-        showToast('New emission factor added successfully.', 'success');
-        renderEnvironmentalPage(container, 'emission-factors');
       });
     });
   }
@@ -550,13 +541,13 @@ function bindEmissionFactorsEvents(container) {
 function bindProductESGProfilesEvents(container) {
   const filterDropdown = container.querySelector('#prod-class-filter');
   if (filterDropdown) {
-    filterDropdown.value = state.productsFilterClass;
+    filterDropdown.value = productsFilterClass;
     filterDropdown.addEventListener('change', (e) => {
-      state.productsFilterClass = e.target.value;
+      productsFilterClass = e.target.value;
       const cards = container.querySelectorAll('.product-card');
       cards.forEach(card => {
         const prodClass = card.getAttribute('data-class');
-        if (state.productsFilterClass === 'All Product Classes' || prodClass === state.productsFilterClass) {
+        if (productsFilterClass === 'All Product Classes' || prodClass === productsFilterClass) {
           card.style.display = '';
         } else {
           card.style.display = 'none';
@@ -599,34 +590,31 @@ function bindProductESGProfilesEvents(container) {
         </div>
       `;
 
-      openModal('Add Product ESG Profile', fieldsHtml, (data) => {
-        const carbon = parseFloat(data.carbon);
-        const recyclability = parseInt(data.recyclability, 10);
-        const xp = parseInt(data.xp, 10);
-        if (isNaN(carbon) || carbon < 0) {
-          showToast('Carbon footprint must be a non-negative number.', 'warning');
-          return;
+      openModal('Add Product ESG Profile', fieldsHtml, async (data) => {
+        try {
+          const carbon = parseFloat(data.carbon);
+          const recyclability = parseInt(data.recyclability, 10);
+          const xp = parseInt(data.xp, 10);
+          if (isNaN(carbon) || carbon < 0) {
+            showToast('Carbon footprint must be a non-negative number.', 'warning');
+            return;
+          }
+          if (isNaN(recyclability) || recyclability < 0 || recyclability > 100) {
+            showToast('Recyclability score must be between 0 and 100.', 'warning');
+            return;
+          }
+          await api.createProduct({
+            sku: data.sku,
+            name: data.name,
+            carbon: carbon,
+            recyclability: recyclability,
+            xp: xp,
+          });
+          showToast(`Product Profile for ${data.name} created.`, 'success');
+          renderEnvironmentalPage(container, 'product-esg-profiles');
+        } catch (err) {
+          showToast('Failed to add product: ' + err.message, 'error');
         }
-        if (isNaN(recyclability) || recyclability < 0 || recyclability > 100) {
-          showToast('Recyclability score must be between 0 and 100.', 'warning');
-          return;
-        }
-        if (isNaN(xp) || xp < 0) {
-          showToast('XP value must be a non-negative number.', 'warning');
-          return;
-        }
-        const newProfile = {
-          id: String(state.productProfiles.length + 1),
-          sku: data.sku,
-          name: data.name,
-          class: data.class,
-          carbon,
-          recyclability,
-          xp
-        };
-        state.productProfiles.push(newProfile);
-        showToast(`Product Profile for ${data.name} created. Score: ${getProductScore(newProfile.recyclability)}`, 'success');
-        renderEnvironmentalPage(container, 'product-esg-profiles');
       });
     });
   }
@@ -641,7 +629,7 @@ function bindCarbonTransactionsEvents(container) {
   if (factorSelect && unitLabel) {
     const updateUnit = () => {
       const val = factorSelect.value;
-      const factor = state.emissionFactors.find(f => f.id === val);
+      const factor = emissionFactors.find(f => f.id === val);
       if (factor) {
         const unitParts = factor.unit.split('/');
         const unitStr = unitParts[1] ? unitParts[1].trim() : 'Qty';
@@ -654,7 +642,7 @@ function bindCarbonTransactionsEvents(container) {
 
   const form = container.querySelector('#tx-log-form');
   if (form) {
-    form.addEventListener('submit', (e) => {
+    form.addEventListener('submit', async (e) => {
       e.preventDefault();
       const dept = container.querySelector('#tx-dept-select').value;
       const factorId = factorSelect.value;
@@ -678,26 +666,22 @@ function bindCarbonTransactionsEvents(container) {
         return;
       }
 
-      const factor = state.emissionFactors.find(f => f.id === factorId);
+      const factor = emissionFactors.find(f => f.id === factorId);
       if (!factor) return;
 
-      const calculated = parseFloat((qtyVal * factor.value / 1000).toFixed(2));
-      const unitParts = factor.unit.split('/');
-      const unitStr = unitParts[1] ? unitParts[1].trim() : 'Qty';
-
-      const newTx = {
-        id: String(state.carbonTransactions.length + 1),
-        date: new Date().toISOString().split('T')[0],
-        dept: dept,
-        source: factor.activity,
-        qty: `${qtyVal.toLocaleString()} ${unitStr}`,
-        calculated: calculated,
-        origin: 'Manual Entry'
-      };
-
-      state.carbonTransactions.unshift(newTx);
-      showToast(`Calculated: ${calculated} tCO2e logged for ${dept}.`, 'success');
-      renderEnvironmentalPage(container, 'carbon-transactions');
+      try {
+        await api.logTransaction({
+          source_type: factor.activity,
+          source_id: 'manual-' + Date.now(),
+          raw_value: qtyVal,
+          emission_factor_id: factorId,
+          department_id: 1,
+        });
+        showToast('Transaction logged successfully.', 'success');
+        renderEnvironmentalPage(container, 'carbon-transactions');
+      } catch (err) {
+        showToast('Failed to log transaction: ' + err.message, 'error');
+      }
     });
   }
 }
@@ -715,11 +699,11 @@ function bindGoalsEvents(container) {
     row.addEventListener('click', () => {
       const id = row.getAttribute('data-id');
 
-      if (state.selectedGoalId === id) {
-        state.selectedGoalId = null;
+      if (selectedGoalId === id) {
+        selectedGoalId = null;
         row.classList.remove('selected');
       } else {
-        state.selectedGoalId = id;
+        selectedGoalId = id;
         tableRows.forEach(r => r.classList.remove('selected'));
         row.classList.add('selected');
       }
@@ -729,7 +713,7 @@ function bindGoalsEvents(container) {
   });
 
   function updateGoalActionButtons() {
-    if (state.selectedGoalId) {
+    if (selectedGoalId) {
       editBtn.removeAttribute('disabled');
       deleteBtn.removeAttribute('disabled');
       editBtn.classList.remove('disabled');
@@ -746,11 +730,11 @@ function bindGoalsEvents(container) {
   const searchInput = container.querySelector('#goals-search');
   if (searchInput) {
     searchInput.addEventListener('input', (e) => {
-      state.goalsSearchQuery = e.target.value.toLowerCase();
+      goalsSearchQuery = e.target.value.toLowerCase();
       tableRows.forEach(row => {
         const name = row.querySelector('.goal-name').textContent.toLowerCase();
         const dept = row.querySelector('.goal-dept').textContent.toLowerCase();
-        if (name.includes(state.goalsSearchQuery) || dept.includes(state.goalsSearchQuery)) {
+        if (name.includes(goalsSearchQuery) || dept.includes(goalsSearchQuery)) {
           row.style.display = '';
         } else {
           row.style.display = 'none';
@@ -821,7 +805,7 @@ function bindGoalsEvents(container) {
         </div>
       `;
 
-      openModal('Create Sustainability Goal', fieldsHtml, (data) => {
+      openModal('Create Sustainability Goal', fieldsHtml, async (data) => {
         const target = parseInt(data.target, 10);
         const current = parseInt(data.current, 10);
         if (isNaN(target) || target <= 0) {
@@ -836,18 +820,19 @@ function bindGoalsEvents(container) {
           showToast('Please select a target deadline date.', 'warning');
           return;
         }
-        const newGoal = {
-          id: String(state.environmentalGoals.length + 1),
-          name: data.name,
-          department: data.department,
-          target,
-          current,
-          deadline: data.deadline,
-          status: data.status
-        };
-        state.environmentalGoals.push(newGoal);
-        showToast(`Created target: ${data.name}`, 'success');
-        renderEnvironmentalPage(container, 'goals');
+        try {
+          await api.createGoal({
+            name: data.name,
+            target,
+            current,
+            deadline: data.deadline,
+            status: data.status
+          });
+          showToast(`Created target: ${data.name}`, 'success');
+          renderEnvironmentalPage(container, 'goals');
+        } catch (err) {
+          showToast('Failed to create goal: ' + err.message, 'error');
+        }
       });
     });
   }
@@ -855,8 +840,8 @@ function bindGoalsEvents(container) {
   // Edit Goal Action
   if (editBtn) {
     editBtn.addEventListener('click', () => {
-      if (!state.selectedGoalId) return;
-      const goal = state.environmentalGoals.find(g => g.id === state.selectedGoalId);
+      if (!selectedGoalId) return;
+      const goal = environmentalGoals.find(g => g.id === selectedGoalId);
       if (!goal) return;
 
       const fieldsHtml = `
@@ -896,7 +881,7 @@ function bindGoalsEvents(container) {
         </div>
       `;
 
-      openModal('Edit Sustainability Goal', fieldsHtml, (data) => {
+      openModal('Edit Sustainability Goal', fieldsHtml, async (data) => {
         const target = parseInt(data.target, 10);
         const current = parseInt(data.current, 10);
         if (isNaN(target) || target <= 0) {
@@ -911,31 +896,35 @@ function bindGoalsEvents(container) {
           showToast('Please select a target deadline date.', 'warning');
           return;
         }
-        goal.name = data.name;
-        goal.department = data.department;
-        goal.target = target;
-        goal.current = current;
-        goal.deadline = data.deadline;
-        goal.status = data.status;
-        showToast('Goal changes saved.', 'success');
-        renderEnvironmentalPage(container, 'goals');
+        try {
+          await api.updateGoal(selectedGoalId, {
+            name: data.name,
+            department: data.department,
+            target,
+            current,
+            deadline: data.deadline,
+            status: data.status
+          });
+          showToast('Goal changes saved.', 'success');
+          renderEnvironmentalPage(container, 'goals');
+        } catch (err) {
+          showToast('Failed to update goal: ' + err.message, 'error');
+        }
       });
     });
   }
 
   // Delete Goal Action
   if (deleteBtn) {
-    deleteBtn.addEventListener('click', () => {
-      if (!state.selectedGoalId) return;
-      const idx = state.environmentalGoals.findIndex(g => g.id === state.selectedGoalId);
-      if (idx === -1) return;
-
-      const name = state.environmentalGoals[idx].name;
-      if (confirm(`Are you sure you want to delete the goal: "${name}"?`)) {
-        state.environmentalGoals.splice(idx, 1);
-        state.selectedGoalId = null;
+    deleteBtn.addEventListener('click', async () => {
+      if (!selectedGoalId) return;
+      try {
+        await api.deleteGoal(selectedGoalId);
+        selectedGoalId = null;
         showToast('Goal removed from active ledger.', 'warning');
         renderEnvironmentalPage(container, 'goals');
+      } catch (err) {
+        showToast('Failed to delete goal: ' + err.message, 'error');
       }
     });
   }
@@ -989,11 +978,20 @@ function openModal(title, fieldsHtml, onSave) {
     if (e.target === overlay) closeModal();
   });
 
-  overlay.querySelector('#env-modal-form').addEventListener('submit', (e) => {
+  overlay.querySelector('#env-modal-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
     const data = Object.fromEntries(formData.entries());
-    onSave(data);
+    const submitBtn = overlay.querySelector('button[type="submit"]');
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Saving...';
+    }
+    try {
+      await onSave(data);
+    } catch (err) {
+      showToast('Operation failed: ' + err.message, 'error');
+    }
     closeModal();
   });
 }
@@ -1011,6 +1009,7 @@ function showToast(message, type = 'success') {
   let icon = 'check-circle';
   if (type === 'warning') icon = 'alert-triangle';
   if (type === 'info') icon = 'info';
+  if (type === 'error') icon = 'alert-octagon';
 
   toast.innerHTML = `
     <i data-lucide="${icon}" class="toast-icon"></i>

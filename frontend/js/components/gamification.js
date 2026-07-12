@@ -1,104 +1,17 @@
-/**
- * EcoSphere Gamification Module View Component - Unified, Interactive & Top-Nav Layout
- */
+import * as api from '../api/gamification.js';
+import * as settingsApi from '../api/settings.js';
+import { showToast, renderLoading } from '../api/toast.js';
+import { getStoredUser } from '../api/auth.js';
 
-import { sanitize } from '../utils/validation.js';
-
-// Storage Keys
-const STORAGE_KEY = 'esg_gamification_state';
-const CATEGORIES_KEY = 'esg_categories';
-
-// ----------------------------------------------------
-// Helper Functions for Local Storage State
-// ----------------------------------------------------
-function getSharedCategories() {
-  const categories = localStorage.getItem(CATEGORIES_KEY);
-  if (!categories) {
-    const defaultCategories = [
-      { name: 'Office Carbon Reduction', type: 'Challenge Category', count: 4, status: 'Active' },
-      { name: 'Community Outreach', type: 'CSR Category', count: 8, status: 'Active' },
-      { name: 'Renewable Transition', type: 'Challenge Category', count: 2, status: 'Active' },
-      { name: 'Office Green', type: 'Challenge Category', count: 1, status: 'Active' },
-      { name: 'Transport', type: 'Challenge Category', count: 1, status: 'Active' },
-      { name: 'Electricity', type: 'Challenge Category', count: 1, status: 'Active' }
-    ];
-    localStorage.setItem(CATEGORIES_KEY, JSON.stringify(defaultCategories));
-    return defaultCategories;
-  }
-  try {
-    return JSON.parse(categories);
-  } catch (e) {
-    return [];
-  }
-}
-
-function loadState() {
-  const defaultState = {
-    currentUser: 'Aditi Rao',
-    employees: {
-      'Aditi Rao': { xp: 3910, department: 'Product Design & R&D', badges: ['badge1', 'badge2'] },
-      'Karan Shah': { xp: 1250, department: 'Finance & Operations', badges: ['badge1'] },
-      'Mark Robinson': { xp: 850, department: 'Logistics & Supply Chain', badges: [] },
-      'Sarah Jenkins': { xp: 1480, department: 'Product Design & R&D', badges: ['badge1', 'badge3'] }
-    },
-    challenges: [
-      { id: 'c1', title: 'Sustainability Sprint', category: 'Office Carbon Reduction', description: 'Participate in carbon offsetting, waste recycling, and energy efficiency actions to score points.', xp: 200, difficulty: 'Hard', deadline: '2026-07-20', status: 'Active', evidenceRequired: true },
-      { id: 'c2', title: 'Recycle Challenge', category: 'Office Green', description: 'Sort office waste into designated organic, recyclable, and general bins for 5 days.', xp: 80, difficulty: 'Easy', deadline: '2026-07-15', status: 'Active', evidenceRequired: true },
-      { id: 'c3', title: 'Commute Green Week', category: 'Transport', description: 'Walk, cycle, carpool or take public transit to work for 4 consecutive days.', xp: 120, difficulty: 'Medium', deadline: '2026-07-25', status: 'Draft', evidenceRequired: true },
-      { id: 'c4', title: 'The Paperless Office', category: 'Office Green', description: 'Avoid printing any physical documents for 5 consecutive workdays. Go 100% digital.', xp: 100, difficulty: 'Easy', deadline: '2026-07-30', status: 'Active', evidenceRequired: false },
-      { id: 'c5', title: 'Energy Audit Champion', category: 'Electricity', description: 'Perform a standby energy audit check on idle appliances in your department, listing savings.', xp: 250, difficulty: 'Medium', deadline: '2026-08-01', status: 'Under Review', evidenceRequired: true }
-    ],
-    participations: [
-      { id: 'p1', challengeId: 'c1', employee: 'Karan Shah', status: 'Approved', proof: 'strava_commute_log.png', xpAwarded: 200 },
-      { id: 'p2', challengeId: 'c2', employee: 'Aditi Rao', status: 'Pending', proof: 'recycle_bin_photo.jpg', xpAwarded: 0 },
-      { id: 'p3', challengeId: 'c4', employee: 'Sarah Jenkins', status: 'Approved', proof: 'paperless_report.pdf', xpAwarded: 100 }
-    ],
-    badges: [
-      { id: 'badge1', name: 'Green Beginner', description: 'Log your first carbon transaction or join a challenge.', unlockRule: 'Join 1 Challenge', icon: '🌿', theme: 'diff-easy' },
-      { id: 'badge2', name: 'Carbon Saver', description: 'Earn 100 XP or complete a carbon-related challenge.', unlockRule: 'XP >= 100', icon: '🔥', theme: 'diff-medium' },
-      { id: 'badge3', name: 'Sustainability Champion', description: 'Earn 1,000 XP in sustainability points.', unlockRule: 'XP >= 1000', icon: '🌎', theme: 'diff-hard' },
-      { id: 'badge4', name: 'Team Player', description: 'Complete at least 2 challenges.', unlockRule: 'Completed Challenges >= 2', icon: '⭐', theme: 'diff-gamify' }
-    ],
-    rewards: [
-      { id: 'r1', name: 'Re-usable Bamboo Coffee Cup', description: 'Get a double-walled branded bamboo mug for your daily commute coffee run.', points: 200, stock: 12, icon: '☕' },
-      { id: 'r2', name: '1-Month City Bike Share Pass', description: 'Redeem code for a free 30-day city cycle rentals membership. Promotes zero carbon travel.', points: 1000, stock: 8, icon: '🚲' },
-      { id: 'r3', name: 'Plant a Tree in Your Name', description: 'We work with OneTreePlanted to place an indigenous species tree. You get a certificate.', points: 300, stock: 9999, icon: '🌲' }
-    ],
-    redemptions: [
-      { id: 'red1', employee: 'Aditi Rao', rewardName: 'Plant a Tree in Your Name', points: 300, date: '2026-07-11' }
-    ],
-    notifications: [
-      { id: 'n1', text: 'Sarah Jenkins completed "The Paperless Office" (+100 XP)', date: '2026-07-11', type: 'success' },
-      { id: 'n2', text: 'Aditi Rao redeemed "Plant a Tree in Your Name" (-300 XP)', date: '2026-07-11', type: 'info' }
-    ],
-    activeFilterStatus: 'All'
-  };
-
-  const data = localStorage.getItem(STORAGE_KEY);
-  if (data) {
-    try {
-      const stateObj = JSON.parse(data);
-      // Migrate / reset if descriptions are missing to clear old hackathon cache
-      if (stateObj && stateObj.challenges && stateObj.challenges.some(c => !c.description)) {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultState));
-        return defaultState;
-      }
-      return stateObj;
-    } catch (e) {
-      console.error("Failed to parse gamification state, using defaults", e);
-    }
-  }
-
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(defaultState));
-  return defaultState;
-}
-
-// Instantiate state object loaded from storage
-const state = loadState();
-
-function saveState() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-}
+let employees = {};
+let challenges = [];
+let participations = [];
+let badges = [];
+let rewards = [];
+let redemptions = [];
+let notifications = [];
+let activeFilterStatus = 'All';
+let currentUser = '';
 
 // ----------------------------------------------------
 // UI Logic Helper Functions
@@ -107,37 +20,8 @@ function getInitials(name) {
   return name ? name.split(' ').map(n => n[0]).join('') : 'U';
 }
 
-function showToast(message, type = 'success') {
-  const container = document.getElementById('gamification-toast-container');
-  if (!container) return;
-
-  const toast = document.createElement('div');
-  toast.className = `toast toast-${type}`;
-  toast.innerHTML = `
-    <span class="toast-message">${message}</span>
-    <button class="toast-close">&times;</button>
-  `;
-  container.appendChild(toast);
-
-  // Trigger browser flow transition
-  setTimeout(() => toast.classList.add('visible'), 10);
-
-  // Auto-remove toast
-  const dismissTimer = setTimeout(() => {
-    toast.classList.remove('visible');
-    setTimeout(() => toast.remove(), 300);
-  }, 4000);
-
-  // Manual dismiss
-  toast.querySelector('.toast-close').addEventListener('click', () => {
-    clearTimeout(dismissTimer);
-    toast.classList.remove('visible');
-    setTimeout(() => toast.remove(), 300);
-  });
-}
-
 function checkAndAwardBadges(employeeName) {
-  const employee = state.employees[employeeName];
+  const employee = employees[employeeName];
   if (!employee) return [];
 
   // Check the Badge Auto-Award toggle from Settings
@@ -149,18 +33,18 @@ function checkAndAwardBadges(employeeName) {
     return [];
   }
 
-  const completedChallengesCount = state.participations.filter(
+  const completedChallengesCount = participations.filter(
     p => p.employee === employeeName && p.status === 'Approved'
   ).length;
 
   const newlyAwarded = [];
 
-  state.badges.forEach(badge => {
+  badges.forEach(badge => {
     if (employee.badges.includes(badge.id)) return; // Already unlocked
 
     let shouldUnlock = false;
     if (badge.id === 'badge1') {
-      const joinedCount = state.participations.filter(p => p.employee === employeeName).length;
+      const joinedCount = participations.filter(p => p.employee === employeeName).length;
       if (joinedCount >= 1) shouldUnlock = true;
     } else if (badge.id === 'badge2') {
       if (employee.xp >= 100) shouldUnlock = true;
@@ -175,7 +59,7 @@ function checkAndAwardBadges(employeeName) {
       newlyAwarded.push(badge.name);
 
       // Log in-app notification
-      state.notifications.unshift({
+      notifications.unshift({
         id: 'notif_' + Date.now() + '_' + Math.random(),
         text: `🎉 Achievement: ${employeeName} unlocked "${badge.name}" badge!`,
         date: new Date().toISOString().split('T')[0],
@@ -191,7 +75,7 @@ function checkAndAwardBadges(employeeName) {
   });
 
   if (newlyAwarded.length > 0) {
-    saveState();
+    
   }
   return newlyAwarded;
 }
@@ -199,12 +83,29 @@ function checkAndAwardBadges(employeeName) {
 // ----------------------------------------------------
 // Main View Export Render Function
 // ----------------------------------------------------
-export function renderGamificationPage(container, pageKey) {
+export async function renderGamificationPage(container, pageKey) {
   if (!pageKey) pageKey = 'challenges';
-
-  // Make sure state is refreshed from storage if loaded again
-  const refreshedState = loadState();
-  Object.assign(state, refreshedState);
+  renderLoading(container);
+  try {
+    const [chs, bgs, rws, ldr] = await Promise.all([
+      api.getChallenges(),
+      api.getBadges(),
+      api.getRewards(),
+      api.getLeaderboard(),
+    ]);
+    challenges = chs;
+    badges = bgs;
+    rewards = rws;
+    const user = getStoredUser();
+    currentUser = user ? user.name : '';
+    if (ldr && ldr.length > 0) {
+      ldr.forEach(e => {
+        employees[e.employee_name] = { xp: e.total_xp || 0, department: e.department_name || '' };
+      });
+    }
+  } catch (err) {
+    showToast('Failed to load gamification data: ' + err.message, 'error');
+  }
 
   container.innerHTML = `
     <div class="view-container">
@@ -226,18 +127,18 @@ export function renderGamificationPage(container, pageKey) {
         
         <!-- Active User Widget -->
         <div class="simulated-user-widget">
-          <div class="active-user-avatar">${getInitials(state.currentUser)}</div>
+          <div class="active-user-avatar">${getInitials(currentUser)}</div>
           <div class="active-user-details">
-            <div class="active-user-name">${state.currentUser}</div>
+            <div class="active-user-name">${currentUser}</div>
             <div class="active-user-meta">
-              <span class="active-user-dept">${state.employees[state.currentUser]?.department || 'Staff'}</span>
-              <span class="active-user-points"><i data-lucide="zap"></i> ${state.employees[state.currentUser]?.xp || 0} XP</span>
+              <span class="active-user-dept">${employees[currentUser]?.department || 'Staff'}</span>
+              <span class="active-user-points"><i data-lucide="zap"></i> ${employees[currentUser]?.xp || 0} XP</span>
             </div>
           </div>
           <div class="active-user-switcher">
             <select id="employee-switcher" class="gamify-select">
-              ${Object.keys(state.employees).map(name => `
-                <option value="${name}" ${state.currentUser === name ? 'selected' : ''}>Switch to: ${name}</option>
+              ${Object.keys(employees).map(name => `
+                <option value="${name}" ${currentUser === name ? 'selected' : ''}>Switch to: ${name}</option>
               `).join('')}
             </select>
           </div>
@@ -323,17 +224,17 @@ function renderSubModulePanel(key) {
 // 1. Challenges Sub-Module Panel
 // ----------------------------------------------------
 function renderChallenges() {
-  const filter = state.activeFilterStatus || 'All';
+  const filter = activeFilterStatus || 'All';
   
   // Filter challenges list
-  const filteredChallenges = state.challenges.filter(c => {
+  const filteredChallenges = challenges.filter(c => {
     if (filter === 'All') return true;
     return c.status === filter;
   });
 
   const cardsHtml = filteredChallenges.map(c => {
     // Get participation record for current employee
-    const part = state.participations.find(p => p.challengeId === c.id && p.employee === state.currentUser);
+    const part = participations.find(p => p.challengeId === c.id && p.employee === currentUser);
     
     let btnHtml = '';
     let statusPillHtml = '';
@@ -436,7 +337,7 @@ function renderChallenges() {
 
     <!-- Challenges Grid -->
     <div class="grid-3">
-      ${cardsHtml ? cardsHtml : '<div class="glass-card full-width text-center" style="grid-column: span 3; padding: 40px; color: var(--text-secondary);">No challenges found in this status state.</div>'}
+      ${cardsHtml ? cardsHtml : '<div class="glass-card full-width text-center" style="grid-column: span 3; padding: 40px; color: var(--text-secondary);">No challenges found in this status </div>'}
     </div>
 
     <!-- Two-Column Layout for Badges and Leaderboard -->
@@ -471,8 +372,8 @@ function renderChallenges() {
 }
 
 function renderBadgeGalleryList() {
-  const currentBadges = state.employees[state.currentUser]?.badges || [];
-  return state.badges.map(b => {
+  const currentBadges = employees[currentUser]?.badges || [];
+  return badges.map(b => {
     const isUnlocked = currentBadges.includes(b.id);
     return `
       <div class="mini-badge-card ${isUnlocked ? 'unlocked' : 'locked'}">
@@ -492,10 +393,10 @@ function renderBadgeGalleryList() {
 
 function renderMiniLeaderboard() {
   // Sort employees by XP
-  const sorted = Object.keys(state.employees).map(name => ({
+  const sorted = Object.keys(employees).map(name => ({
     name,
-    xp: state.employees[name].xp,
-    dept: state.employees[name].department
+    xp: employees[name].xp,
+    dept: employees[name].department
   })).sort((a, b) => b.xp - a.xp);
 
   return sorted.slice(0, 3).map((item, idx) => {
@@ -519,13 +420,13 @@ function renderMiniLeaderboard() {
 // ----------------------------------------------------
 function renderChallengeParticipation() {
   // Compute pending and active counts
-  const totalXP = Object.keys(state.employees).reduce((sum, name) => sum + state.employees[name].xp, 0);
-  const pendingSubmissions = state.participations.filter(p => p.status === 'Pending');
-  const activeParticipations = state.participations.filter(p => p.status === 'Joined');
+  const totalXP = Object.keys(employees).reduce((sum, name) => sum + employees[name].xp, 0);
+  const pendingSubmissions = participations.filter(p => p.status === 'Pending');
+  const activeParticipations = participations.filter(p => p.status === 'Joined');
 
   // Generate table rows
   const tableRows = pendingSubmissions.map(p => {
-    const challenge = state.challenges.find(c => c.id === p.challengeId) || { title: 'Unknown Challenge', xp: 0 };
+    const challenge = challenges.find(c => c.id === p.challengeId) || { title: 'Unknown Challenge', xp: 0 };
     return `
       <tr data-participation-id="${p.id}">
         <td><strong>${p.employee}</strong></td>
@@ -592,7 +493,7 @@ function renderChallengeParticipation() {
         <h3>Recent Gamification Notifications</h3>
       </div>
       <div class="notification-log-list">
-        ${state.notifications.map(n => `
+        ${notifications.map(n => `
           <div class="notif-log-item notif-type-${n.type || 'info'}">
             <span class="notif-dot"></span>
             <span class="notif-text">${n.text}</span>
@@ -608,9 +509,9 @@ function renderChallengeParticipation() {
 // 3. Badges Sub-Module Panel (Full Gallery)
 // ----------------------------------------------------
 function renderBadges() {
-  const currentBadges = state.employees[state.currentUser]?.badges || [];
+  const currentBadges = employees[currentUser]?.badges || [];
   
-  const badgeCardsHtml = state.badges.map(b => {
+  const badgeCardsHtml = badges.map(b => {
     const isUnlocked = currentBadges.includes(b.id);
     return `
       <div class="glass-card badge-gallery-card ${isUnlocked ? 'unlocked' : 'locked'}">
@@ -626,9 +527,9 @@ function renderBadges() {
   return `
     <div class="badge-summary-header">
       <div class="badge-stats-row">
-        <span>Unlocked: <strong>${currentBadges.length} / ${state.badges.length}</strong> Badges</span>
+        <span>Unlocked: <strong>${currentBadges.length} / ${badges.length}</strong> Badges</span>
         <div class="progress-bar-container">
-          <div class="progress-bar-fill" style="width: ${(currentBadges.length / state.badges.length) * 100}%"></div>
+          <div class="progress-bar-fill" style="width: ${(currentBadges.length / badges.length) * 100}%"></div>
         </div>
       </div>
     </div>
@@ -642,9 +543,9 @@ function renderBadges() {
 // 4. Rewards Sub-Module Panel (Catalog & Redemption)
 // ----------------------------------------------------
 function renderRewards() {
-  const points = state.employees[state.currentUser]?.xp || 0;
+  const points = employees[currentUser]?.xp || 0;
 
-  const rewardCardsHtml = state.rewards.map(r => {
+  const rewardCardsHtml = rewards.map(r => {
     const isOutOfStock = r.stock <= 0;
     const canAfford = points >= r.points;
     const isRedeemable = !isOutOfStock && canAfford;
@@ -695,7 +596,7 @@ function renderRewards() {
             </tr>
           </thead>
           <tbody>
-            ${state.redemptions.map(red => `
+            ${redemptions.map(red => `
               <tr>
                 <td><strong>${red.employee}</strong></td>
                 <td>${red.rewardName}</td>
@@ -704,7 +605,7 @@ function renderRewards() {
                 <td><span class="status-tag status-tag-active">Fulfilled</span></td>
               </tr>
             `).join('')}
-            ${state.redemptions.length === 0 ? '<tr><td colspan="5" class="text-center" style="padding:20px; color:var(--text-secondary);">No redemptions logged yet.</td></tr>' : ''}
+            ${redemptions.length === 0 ? '<tr><td colspan="5" class="text-center" style="padding:20px; color:var(--text-secondary);">No redemptions logged yet.</td></tr>' : ''}
           </tbody>
         </table>
       </div>
@@ -717,11 +618,11 @@ function renderRewards() {
 // ----------------------------------------------------
 function renderLeaderboard() {
   // Sort individuals
-  const sortedIndividuals = Object.keys(state.employees).map(name => ({
+  const sortedIndividuals = Object.keys(employees).map(name => ({
     name,
-    xp: state.employees[name].xp,
-    dept: state.employees[name].department,
-    badgesCount: state.employees[name].badges.length
+    xp: employees[name].xp,
+    dept: employees[name].department,
+    badgesCount: employees[name].badges.length
   })).sort((a, b) => b.xp - a.xp);
 
   const individualRows = sortedIndividuals.map((emp, index) => {
@@ -789,7 +690,7 @@ function renderLeaderboard() {
 // Modal Renders
 // ----------------------------------------------------
 function renderCreateChallengeModal() {
-  const categories = getSharedCategories();
+  const categories = [];
   return `
     <div id="create-challenge-modal" class="gamify-modal">
       <div class="gamify-modal-content">
@@ -894,21 +795,19 @@ function bindGamificationEvents(container, pageKey) {
   // 1. Simulated Employee Switcher
   const userSwitcher = container.querySelector('#employee-switcher');
   if (userSwitcher) {
-    userSwitcher.addEventListener('change', (e) => {
-      state.currentUser = e.target.value;
-      saveState();
-      renderGamificationPage(container, pageKey);
-      showToast(`Switched active user to: ${state.currentUser}`, 'info');
+    userSwitcher.addEventListener('change', async (e) => {
+      currentUser = e.target.value;
+      await renderGamificationPage(container, pageKey);
+      showToast(`Switched active user to: ${currentUser}`, 'info');
     });
   }
 
   // 2. Lifecycle Status Steps
   const steps = container.querySelectorAll('.lifecycle-step');
   steps.forEach(step => {
-    step.addEventListener('click', () => {
-      state.activeFilterStatus = step.getAttribute('data-status');
-      saveState();
-      renderGamificationPage(container, pageKey);
+    step.addEventListener('click', async () => {
+      activeFilterStatus = step.getAttribute('data-status');
+      await renderGamificationPage(container, pageKey);
     });
   });
 
@@ -933,7 +832,7 @@ function bindGamificationEvents(container, pageKey) {
   // Submit Create Challenge Form
   const createForm = container.querySelector('#create-challenge-form');
   if (createForm) {
-    createForm.addEventListener('submit', (e) => {
+    createForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       const title = container.querySelector('#c-title').value.trim();
       const category = container.querySelector('#c-category').value;
@@ -978,29 +877,25 @@ function bindGamificationEvents(container, pageKey) {
         return;
       }
 
-      const newChallenge = {
-        id: 'c_' + Date.now(),
-        title,
-        category,
-        xp,
-        difficulty,
-        deadline,
-        description,
-        evidenceRequired,
-        status
-      };
+      try {
+        await api.createChallenge({
+          title,
+          category_id: 1,
+          description,
+          xp,
+          difficulty,
+          evidence_required: evidenceRequired,
+          deadline,
+          status
+        });
+        challenges = await api.getChallenges();
+      } catch (err) {
+        showToast('Failed to create challenge: ' + err.message, 'error');
+        return;
+      }
 
-      state.challenges.push(newChallenge);
-      state.notifications.unshift({
-        id: 'notif_' + Date.now(),
-        text: `New challenge created: "${title}" (${status})`,
-        date: new Date().toISOString().split('T')[0],
-        type: 'info'
-      });
-
-      saveState();
       createModal.classList.remove('open');
-      renderGamificationPage(container, pageKey);
+      await renderGamificationPage(container, pageKey);
       showToast(`Challenge "${title}" created successfully!`);
     });
   }
@@ -1008,73 +903,75 @@ function bindGamificationEvents(container, pageKey) {
   // 4. Activate a Challenge
   const activateBtns = container.querySelectorAll('.btn-activate-challenge');
   activateBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', async () => {
       const id = btn.getAttribute('data-id');
-      const challenge = state.challenges.find(c => c.id === id);
-      if (challenge) {
-        challenge.status = 'Active';
-        state.notifications.unshift({
-          id: 'notif_' + Date.now(),
-          text: `Challenge "${challenge.title}" has been activated!`,
-          date: new Date().toISOString().split('T')[0],
-          type: 'info'
-        });
-        saveState();
-        renderGamificationPage(container, pageKey);
-        showToast(`Challenge "${challenge.title}" published and activated!`);
+      try {
+        await api.updateChallengeStatus(id, 'Active');
+        challenges = await api.getChallenges();
+      } catch (err) {
+        showToast('Failed to activate challenge: ' + err.message, 'error');
+        return;
       }
+      await renderGamificationPage(container, pageKey);
+      showToast(`Challenge activated!`);
     });
   });
 
   // 5. Join Challenge Button
   const joinBtns = container.querySelectorAll('.btn-join-challenge');
   joinBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', async () => {
       const id = btn.getAttribute('data-id');
-      const challenge = state.challenges.find(c => c.id === id);
-      if (challenge) {
-        // Add participation
-        const newPart = {
-          id: 'p_' + Date.now(),
-          challengeId: id,
-          employee: state.currentUser,
-          status: challenge.evidenceRequired ? 'Joined' : 'Approved', // Auto approve if no evidence required
-          proof: '',
-          xpAwarded: challenge.evidenceRequired ? 0 : challenge.xp
-        };
+      const challenge = challenges.find(c => c.id === id);
+      if (!challenge) return;
 
-        state.participations.push(newPart);
+      const user = getStoredUser();
+      const employeeId = user ? user.id : 1;
 
-        if (!challenge.evidenceRequired) {
-          // Immediately award points
-          state.employees[state.currentUser].xp += challenge.xp;
-          state.notifications.unshift({
-            id: 'notif_' + Date.now(),
-            text: `✅ ${state.currentUser} completed "${challenge.title}" (+${challenge.xp} XP)`,
-            date: new Date().toISOString().split('T')[0],
-            type: 'success'
-          });
-          const awards = checkAndAwardBadges(state.currentUser);
-          saveState();
-          renderGamificationPage(container, pageKey);
-          if (awards.length > 0) {
-            showToast(`Completed! Awarded ${challenge.xp} XP & unlocked ${awards.join(', ')}!`);
-          } else {
-            showToast(`Completed! Awarded ${challenge.xp} XP!`);
-          }
+      try {
+        await api.participateInChallenge(id, employeeId);
+      } catch (err) {
+        showToast('Failed to join challenge: ' + err.message, 'error');
+        return;
+      }
+
+      const newPart = {
+        id: 'p_' + Date.now(),
+        challengeId: id,
+        employee: currentUser,
+        status: challenge.evidenceRequired ? 'Joined' : 'Approved',
+        proof: '',
+        xpAwarded: challenge.evidenceRequired ? 0 : challenge.xp
+      };
+
+      participations.push(newPart);
+
+      if (!challenge.evidenceRequired) {
+        employees[currentUser] = employees[currentUser] || { xp: 0, department: '' };
+        employees[currentUser].xp += challenge.xp;
+        notifications.unshift({
+          id: 'notif_' + Date.now(),
+          text: `✅ ${currentUser} completed "${challenge.title}" (+${challenge.xp} XP)`,
+          date: new Date().toISOString().split('T')[0],
+          type: 'success'
+        });
+        const awards = checkAndAwardBadges(currentUser);
+        await renderGamificationPage(container, pageKey);
+        if (awards.length > 0) {
+          showToast(`Completed! Awarded ${challenge.xp} XP & unlocked ${awards.join(', ')}!`);
         } else {
-          // Just joined
-          state.notifications.unshift({
-            id: 'notif_' + Date.now(),
-            text: `👤 ${state.currentUser} joined challenge "${challenge.title}"`,
-            date: new Date().toISOString().split('T')[0],
-            type: 'info'
-          });
-          checkAndAwardBadges(state.currentUser); // Check "Join 1 challenge" badge
-          saveState();
-          renderGamificationPage(container, pageKey);
-          showToast(`Successfully joined "${challenge.title}"!`);
+          showToast(`Completed! Awarded ${challenge.xp} XP!`);
         }
+      } else {
+        notifications.unshift({
+          id: 'notif_' + Date.now(),
+          text: `👤 ${currentUser} joined challenge "${challenge.title}"`,
+          date: new Date().toISOString().split('T')[0],
+          type: 'info'
+        });
+        checkAndAwardBadges(currentUser);
+        await renderGamificationPage(container, pageKey);
+        showToast(`Successfully joined "${challenge.title}"!`);
       }
     });
   });
@@ -1107,7 +1004,7 @@ function bindGamificationEvents(container, pageKey) {
   // Submit Evidence Form
   const submitForm = container.querySelector('#submit-evidence-form');
   if (submitForm) {
-    submitForm.addEventListener('submit', (e) => {
+    submitForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       const challengeId = container.querySelector('#submit-challenge-id').value;
       const proofFile = container.querySelector('#evidence-file').value.trim();
@@ -1121,133 +1018,154 @@ function bindGamificationEvents(container, pageKey) {
         return;
       }
 
-      const part = state.participations.find(p => p.challengeId === challengeId && p.employee === state.currentUser);
+      const user = getStoredUser();
+      const employeeId = user ? user.id : 1;
+
+      try {
+        await api.submitEvidence(challengeId, employeeId, proofFile);
+      } catch (err) {
+        showToast('Failed to submit evidence: ' + err.message, 'error');
+        return;
+      }
+
+      const part = participations.find(p => p.challengeId === challengeId && p.employee === currentUser);
       if (part) {
         part.status = 'Pending';
         part.proof = proofFile;
-
-        state.notifications.unshift({
-          id: 'notif_' + Date.now(),
-          text: `📄 ${state.currentUser} submitted proof for "${container.querySelector('#submit-challenge-title').textContent}"`,
-          date: new Date().toISOString().split('T')[0],
-          type: 'info'
-        });
-
-        saveState();
-        submitModal.classList.remove('open');
-        renderGamificationPage(container, pageKey);
-        showToast('Evidence submitted for review!');
       }
+
+      notifications.unshift({
+        id: 'notif_' + Date.now(),
+        text: `📄 ${currentUser} submitted proof for "${container.querySelector('#submit-challenge-title').textContent}"`,
+        date: new Date().toISOString().split('T')[0],
+        type: 'info'
+      });
+
+      submitModal.classList.remove('open');
+      await renderGamificationPage(container, pageKey);
+      showToast('Evidence submitted for review!');
     });
   }
 
   // 7. Approve / Reject Submissions in Queue (Admin side)
   const approveBtns = container.querySelectorAll('.btn-approve-submission');
   approveBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', async () => {
       const partId = btn.getAttribute('data-id');
-      const part = state.participations.find(p => p.id === partId);
-      if (part) {
-        const challenge = state.challenges.find(c => c.id === part.challengeId);
-        if (challenge) {
-          part.status = 'Approved';
-          part.xpAwarded = challenge.xp;
+      const part = participations.find(p => p.id === partId);
+      if (!part) return;
 
-          // Add XP to employee
-          if (state.employees[part.employee]) {
-            state.employees[part.employee].xp += challenge.xp;
-          }
+      const challenge = challenges.find(c => c.id === part.challengeId);
+      if (!challenge) return;
 
-          state.notifications.unshift({
-            id: 'notif_' + Date.now(),
-            text: `✅ Admin approved ${part.employee}'s submission for "${challenge.title}" (+${challenge.xp} XP)`,
-            date: new Date().toISOString().split('T')[0],
-            type: 'success'
-          });
+      const user = getStoredUser();
+      const employeeId = user ? user.id : 1;
 
-          // Recalculate achievements
-          const awards = checkAndAwardBadges(part.employee);
-          
-          saveState();
-          renderGamificationPage(container, pageKey);
+      try {
+        await api.approveParticipation(partId, employeeId);
+      } catch (err) {
+        showToast('Failed to approve submission: ' + err.message, 'error');
+        return;
+      }
 
-          if (awards.length > 0) {
-            showToast(`Approved! ${part.employee} earned ${challenge.xp} XP & unlocked ${awards.join(', ')}!`);
-          } else {
-            showToast(`Submission approved and ${challenge.xp} XP awarded!`);
-          }
-        }
+      part.status = 'Approved';
+      part.xpAwarded = challenge.xp;
+
+      if (employees[part.employee]) {
+        employees[part.employee].xp += challenge.xp;
+      }
+
+      notifications.unshift({
+        id: 'notif_' + Date.now(),
+        text: `✅ Admin approved ${part.employee}'s submission for "${challenge.title}" (+${challenge.xp} XP)`,
+        date: new Date().toISOString().split('T')[0],
+        type: 'success'
+      });
+
+      const awards = checkAndAwardBadges(part.employee);
+      await renderGamificationPage(container, pageKey);
+
+      if (awards.length > 0) {
+        showToast(`Approved! ${part.employee} earned ${challenge.xp} XP & unlocked ${awards.join(', ')}!`);
+      } else {
+        showToast(`Submission approved and ${challenge.xp} XP awarded!`);
       }
     });
   });
 
   const rejectBtns = container.querySelectorAll('.btn-reject-submission');
   rejectBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', async () => {
       const partId = btn.getAttribute('data-id');
-      const part = state.participations.find(p => p.id === partId);
-      if (part) {
-        const challenge = state.challenges.find(c => c.id === part.challengeId);
-        part.status = 'Rejected';
+      const part = participations.find(p => p.id === partId);
+      if (!part) return;
 
-        state.notifications.unshift({
-          id: 'notif_' + Date.now(),
-          text: `❌ Admin rejected ${part.employee}'s submission for "${challenge ? challenge.title : 'Challenge'}"`,
-          date: new Date().toISOString().split('T')[0],
-          type: 'warning'
-        });
+      const challenge = challenges.find(c => c.id === part.challengeId);
+      part.status = 'Rejected';
 
-        saveState();
-        renderGamificationPage(container, pageKey);
-        showToast('Submission rejected. Employee can resubmit.', 'warning');
-      }
+      notifications.unshift({
+        id: 'notif_' + Date.now(),
+        text: `❌ Admin rejected ${part.employee}'s submission for "${challenge ? challenge.title : 'Challenge'}"`,
+        date: new Date().toISOString().split('T')[0],
+        type: 'warning'
+      });
+
+      await renderGamificationPage(container, pageKey);
+      showToast('Submission rejected. Employee can resubmit.', 'warning');
     });
   });
 
   // 8. Redeem Reward Button
   const redeemBtns = container.querySelectorAll('.btn-redeem-reward');
   redeemBtns.forEach(btn => {
-    btn.addEventListener('click', () => {
+    btn.addEventListener('click', async () => {
       const rewardId = btn.getAttribute('data-id');
-      const reward = state.rewards.find(r => r.id === rewardId);
-      const points = state.employees[state.currentUser]?.xp || 0;
+      const reward = rewards.find(r => r.id === rewardId);
+      const points = employees[currentUser]?.xp || 0;
 
-      if (reward) {
-        if (reward.stock <= 0) {
-          showToast('Item is out of stock!', 'warning');
-          return;
-        }
-        if (points < reward.points) {
-          showToast('Insufficient points balance!', 'warning');
-          return;
-        }
+      if (!reward) return;
 
-        // Deduct points, decrement stock
-        state.employees[state.currentUser].xp -= reward.points;
-        if (reward.stock < 9999) { // Don't decrement unlimited stock
-          reward.stock -= 1;
-        }
-
-        // Log redemption
-        state.redemptions.unshift({
-          id: 'red_' + Date.now(),
-          employee: state.currentUser,
-          rewardName: reward.name,
-          points: reward.points,
-          date: new Date().toISOString().split('T')[0]
-        });
-
-        state.notifications.unshift({
-          id: 'notif_' + Date.now(),
-          text: `🛍️ ${state.currentUser} redeemed "${reward.name}" (-${reward.points} Points)`,
-          date: new Date().toISOString().split('T')[0],
-          type: 'info'
-        });
-
-        saveState();
-        renderGamificationPage(container, pageKey);
-        showToast(`Redeemed "${reward.name}" successfully! -${reward.points} Points`);
+      if (reward.stock <= 0) {
+        showToast('Item is out of stock!', 'warning');
+        return;
       }
+      if (points < reward.points) {
+        showToast('Insufficient points balance!', 'warning');
+        return;
+      }
+
+      const user = getStoredUser();
+      const employeeId = user ? user.id : 1;
+
+      try {
+        await api.redeemReward(rewardId, employeeId);
+      } catch (err) {
+        showToast('Failed to redeem reward: ' + err.message, 'error');
+        return;
+      }
+
+      employees[currentUser].xp -= reward.points;
+      if (reward.stock < 9999) {
+        reward.stock -= 1;
+      }
+
+      redemptions.unshift({
+        id: 'red_' + Date.now(),
+        employee: currentUser,
+        rewardName: reward.name,
+        points: reward.points,
+        date: new Date().toISOString().split('T')[0]
+      });
+
+      notifications.unshift({
+        id: 'notif_' + Date.now(),
+        text: `🛍️ ${currentUser} redeemed "${reward.name}" (-${reward.points} Points)`,
+        date: new Date().toISOString().split('T')[0],
+        type: 'info'
+      });
+
+      await renderGamificationPage(container, pageKey);
+      showToast(`Redeemed "${reward.name}" successfully! -${reward.points} Points`);
     });
   });
 }

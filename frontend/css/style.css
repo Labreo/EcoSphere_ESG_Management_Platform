@@ -1174,6 +1174,42 @@ html, body {
 }
 
 /* ============================================================
+   Global Toast Notifications
+   ============================================================ */
+.global-toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: var(--bg-card);
+  border-left: 4px solid var(--accent-success);
+  border-radius: var(--radius-md);
+  padding: 12px 20px;
+  box-shadow: var(--shadow-lg), 0 0 15px rgba(0,0,0,0.4);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--text-primary);
+  font-size: 13.5px;
+  z-index: 2000;
+  transform: translateY(100px);
+  opacity: 0;
+  transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+.global-toast.show {
+  transform: translateY(0);
+  opacity: 1;
+}
+.global-toast-success { border-left-color: var(--accent-success); }
+.global-toast-info { border-left-color: var(--accent-info); }
+.global-toast-warning { border-left-color: #F59E0B; }
+.global-toast-error { border-left-color: #EF4444; }
+.global-toast .toast-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+/* ============================================================
    Form Validation Error States
    ============================================================ */
 .input-error {
