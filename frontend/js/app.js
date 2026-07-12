@@ -55,34 +55,10 @@ const routes = {
 
 // DOM Elements
 const contentViewport = document.getElementById('content-viewport');
-const breadcrumbParent = document.getElementById('breadcrumb-parent');
-const breadcrumbActive = document.getElementById('breadcrumb-active');
 const appSidebar = document.getElementById('app-sidebar');
+const sidebarToggleBtn = document.getElementById('sidebar-toggle-btn');
 const mobileNavToggle = document.getElementById('mobile-nav-toggle');
-const mobileCloseBtn = document.getElementById('mobile-close-btn');
 const themeToggle = document.getElementById('theme-toggle');
-
-// Helper: Format route keys into printable titles
-function formatRouteTitle(str) {
-  if (!str) return '';
-  return str.split('-').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ');
-}
-
-// Helper: Get Breadcrumb Info from Route path
-function getBreadcrumbInfo(route) {
-  if (route === 'dashboard') {
-    return { parent: 'App', active: 'Dashboard' };
-  }
-  
-  const parts = route.split('/');
-  if (parts.length === 2) {
-    const parent = parts[0].charAt(0).toUpperCase() + parts[0].slice(1);
-    const active = formatRouteTitle(parts[1]);
-    return { parent, active };
-  }
-  
-  return { parent: 'App', active: 'View' };
-}
 
 // Main Routing Handler
 function handleRouting() {
@@ -96,16 +72,21 @@ function handleRouting() {
     return;
   }
   
-  // Close mobile sidebar if open
+  // Parse main module category from the route path (e.g. "environmental/emission-factors" -> "environmental")
+  const parts = hash.split('/');
+  const mainModule = parts[0];
+  
+  // Update Top Navigation Bar active state
+  updateTopNavActiveState(mainModule);
+
+  // Update Left Sidebar sub-menus visibility based on active category
+  updateSidebarMenuVisibility(mainModule);
+  
+  // Highlight active link inside the Left Sidebar sub-menu
+  updateSidebarActiveLink(hash);
+  
+  // Close mobile sidebar drawer if open
   appSidebar.classList.remove('open');
-  
-  // Highlight active sidebar navigation item
-  updateSidebarActiveState(hash);
-  
-  // Update Breadcrumbs
-  const breadcrumb = getBreadcrumbInfo(hash);
-  breadcrumbParent.textContent = breadcrumb.parent;
-  breadcrumbActive.textContent = breadcrumb.active;
   
   // Render views with a fade-in animation transition
   contentViewport.classList.remove('fade-in');
@@ -122,13 +103,43 @@ function handleRouting() {
   }
 }
 
-// Highlight the matching navigation sidebar link
-function updateSidebarActiveState(hash) {
-  // Clear previous active states
-  const allLinks = document.querySelectorAll('.nav-link');
-  allLinks.forEach(link => link.classList.remove('active'));
+// Highlight the matching Top Navigation link
+function updateTopNavActiveState(mainModule) {
+  const topLinks = document.querySelectorAll('.top-nav-link');
+  topLinks.forEach(link => link.classList.remove('active'));
   
-  // Find correct link
+  const activeTopLink = document.getElementById(`top-link-${mainModule}`);
+  if (activeTopLink) {
+    activeTopLink.classList.add('active');
+  }
+}
+
+// Filter the Left Sidebar to only display sub-menu lists matching active module
+function updateSidebarMenuVisibility(mainModule) {
+  // Hide all sub-menu blocks
+  const allSubMenus = document.querySelectorAll('.sidebar-sub-menu');
+  allSubMenus.forEach(menu => {
+    menu.style.display = 'none';
+  });
+
+  // If dashboard, we do not need submenus in sidebar, so sidebar collapses or stays blank
+  if (mainModule === 'dashboard') {
+    return;
+  }
+
+  // Show the matching sub-menu
+  const activeSubMenu = document.getElementById(`menu-${mainModule}`);
+  if (activeSubMenu) {
+    activeSubMenu.style.display = 'flex';
+  }
+}
+
+// Highlight the active sub-link inside the Left Sidebar
+function updateSidebarActiveLink(hash) {
+  const sidebarLinks = document.querySelectorAll('.nav-link');
+  sidebarLinks.forEach(link => link.classList.remove('active'));
+  
+  // Check for the link matching the hash
   let linkId = 'link-' + hash;
   if (hash.includes('/')) {
     const parts = hash.split('/');
@@ -141,25 +152,62 @@ function updateSidebarActiveState(hash) {
   }
 }
 
+// Handle Expand/Collapse Toggle of Left Sidebar
+function initializeSidebarToggle() {
+  // Read saved collapsed state or default to true (collapsed)
+  let isCollapsed = localStorage.getItem('sidebar-collapsed');
+  
+  // If not set, default to collapsed ('true')
+  if (isCollapsed === null) {
+    isCollapsed = 'true';
+  }
+
+  if (isCollapsed === 'true') {
+    appSidebar.classList.add('collapsed');
+    updateToggleBtnIcon(true);
+  } else {
+    appSidebar.classList.remove('collapsed');
+    updateToggleBtnIcon(false);
+  }
+
+  // Toggle Action listener
+  if (sidebarToggleBtn) {
+    sidebarToggleBtn.addEventListener('click', () => {
+      const nowCollapsed = appSidebar.classList.toggle('collapsed');
+      localStorage.setItem('sidebar-collapsed', nowCollapsed ? 'true' : 'false');
+      updateToggleBtnIcon(nowCollapsed);
+    });
+  }
+}
+
+// Update the icon inside the sidebar collapse button
+function updateToggleBtnIcon(isCollapsed) {
+  if (!sidebarToggleBtn) return;
+  const icon = sidebarToggleBtn.querySelector('i');
+  if (icon && window.lucide) {
+    sidebarToggleBtn.innerHTML = isCollapsed 
+      ? '<i data-lucide="chevron-right"></i>' 
+      : '<i data-lucide="chevron-left"></i>';
+    window.lucide.createIcons();
+  }
+}
+
 // Initialize Event Listeners
 function initializeApp() {
+  // Initialize Collapsible Sidebar logic
+  initializeSidebarToggle();
+
   // Hashchange Router event
   window.addEventListener('hashchange', handleRouting);
   
-  // Mobile Nav Toggles
+  // Mobile Nav Toggle Drawer
   if (mobileNavToggle) {
     mobileNavToggle.addEventListener('click', () => {
       appSidebar.classList.add('open');
     });
   }
   
-  if (mobileCloseBtn) {
-    mobileCloseBtn.addEventListener('click', () => {
-      appSidebar.classList.remove('open');
-    });
-  }
-  
-  // Close sidebar on tapping overlay/outside on mobile
+  // Close sidebar on tapping outside on mobile viewports
   document.addEventListener('click', (e) => {
     if (window.innerWidth <= 1024) {
       if (!appSidebar.contains(e.target) && !mobileNavToggle.contains(e.target) && appSidebar.classList.contains('open')) {
@@ -170,7 +218,6 @@ function initializeApp() {
 
   // Dark/Light Theme Toggle
   if (themeToggle) {
-    // Check saved theme or default to dark
     const savedTheme = localStorage.getItem('theme') || 'dark';
     document.documentElement.setAttribute('data-theme', savedTheme);
     updateThemeIcon(savedTheme);
@@ -189,6 +236,7 @@ function initializeApp() {
 }
 
 function updateThemeIcon(theme) {
+  if (!themeToggle) return;
   const icon = themeToggle.querySelector('i');
   if (icon && window.lucide) {
     themeToggle.innerHTML = theme === 'light' ? '<i data-lucide="moon"></i>' : '<i data-lucide="sun"></i>';
