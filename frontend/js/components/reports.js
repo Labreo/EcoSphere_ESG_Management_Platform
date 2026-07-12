@@ -416,28 +416,38 @@ export function renderReportsPage(container, pageKey) {
     contentHtml = renderCustomReportBuilderView(filtered);
   }
 
+  const reportsPageTitles = { 'environmental-report': 'Environmental Report', 'social-report': 'Social Report', 'governance-report': 'Governance Report', 'esg-summary': 'ESG Summary', 'custom-report-builder': 'Custom Builder' };
+
   const subNavHtml = `
       <div class="sub-nav-tabs reports">
         <a href="#reports/environmental-report" class="sub-nav-tab ${pageKey === 'environmental-report' ? 'active' : ''}">
-        Environmental
+        <i data-lucide="leaf"></i> Environmental
       </a>
       <a href="#reports/social-report" class="sub-nav-tab ${pageKey === 'social-report' ? 'active' : ''}">
-        Social
+        <i data-lucide="users"></i> Social
       </a>
       <a href="#reports/governance-report" class="sub-nav-tab ${pageKey === 'governance-report' ? 'active' : ''}">
-        Governance
+        <i data-lucide="shield"></i> Governance
       </a>
       <a href="#reports/esg-summary" class="sub-nav-tab ${pageKey === 'esg-summary' ? 'active' : ''}">
-        ESG Summary
+        <i data-lucide="pie-chart"></i> ESG Summary
       </a>
       <a href="#reports/custom-report-builder" class="sub-nav-tab ${pageKey === 'custom-report-builder' ? 'active' : ''}">
-        Custom Builder
+        <i data-lucide="wand-2"></i> Custom Builder
       </a>
     </div>
   `;
 
   container.innerHTML = `
     <div class="view-container">
+      <div class="breadcrumb">
+        <a href="#dashboard">Dashboard</a>
+        <span class="breadcrumb-sep">›</span>
+        <a href="#reports/environmental-report">Reports</a>
+        <span class="breadcrumb-sep">›</span>
+        <span class="breadcrumb-current">${reportsPageTitles[pageKey] || 'Reports'}</span>
+      </div>
+
       <div class="view-header">
         <h1 class="view-title">${getReportsTitle(pageKey)}</h1>
         <p class="view-description">${getReportsDesc(pageKey)}</p>

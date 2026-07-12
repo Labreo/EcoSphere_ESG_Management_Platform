@@ -2,6 +2,8 @@
  * EcoSphere Environmental Module View Component - Unified, Interactive & Top-Nav Layout
  */
 
+import { validateForm, sanitize } from '../utils/validation.js';
+
 // Module-level in-memory state, persisting across internal tab switching
 const state = {
   emissionFactors: [
@@ -38,22 +40,32 @@ export function renderEnvironmentalPage(container, pageKey) {
   // Clear selection whenever we render/re-render
   state.selectedGoalId = null;
 
+  const envPageTitles = { 'emission-factors': 'Emission Factors', 'product-esg-profiles': 'Product ESG Profiles', 'carbon-transactions': 'Carbon Transactions', 'goals': 'Environmental Goals' };
+
   container.innerHTML = `
-    <div class="view-container" style="padding-top: 0;">
+    <div class="view-container">
       
-      <!-- Sub Navigation Connected Rectangular Tabs Row -->
+      <div class="breadcrumb">
+        <a href="#dashboard">Dashboard</a>
+        <span class="breadcrumb-sep">›</span>
+        <a href="#environmental/goals">Environmental</a>
+        <span class="breadcrumb-sep">›</span>
+        <span class="breadcrumb-current">${envPageTitles[pageKey] || 'Environmental'}</span>
+      </div>
+
+      <!-- Sub Navigation Tabs -->
       <div class="sub-nav-tabs env">
         <a href="#environmental/emission-factors" class="sub-nav-tab ${pageKey === 'emission-factors' ? 'active' : ''}">
-          Emission Factors
+          <i data-lucide="droplets"></i> Emission Factors
         </a>
         <a href="#environmental/product-esg-profiles" class="sub-nav-tab ${pageKey === 'product-esg-profiles' ? 'active' : ''}">
-          Product ESG Profiles
+          <i data-lucide="package"></i> Product ESG Profiles
         </a>
         <a href="#environmental/carbon-transactions" class="sub-nav-tab ${pageKey === 'carbon-transactions' ? 'active' : ''}">
-          Carbon Transactions
+          <i data-lucide="arrow-left-right"></i> Carbon Transactions
         </a>
         <a href="#environmental/goals" class="sub-nav-tab ${pageKey === 'goals' ? 'active' : ''}">
-          Environmental Goals
+          <i data-lucide="target"></i> Environmental Goals
         </a>
       </div>
 
@@ -454,9 +466,14 @@ function bindEmissionFactorsEvents(container) {
       `;
 
       openModal('Edit Emission Factor', fieldsHtml, (data) => {
+        const val = parseFloat(data.value);
+        if (isNaN(val) || val <= 0) {
+          showToast('Factor value must be a positive number.', 'warning');
+          return;
+        }
         factor.activity = data.activity;
         factor.category = data.category;
-        factor.value = parseFloat(data.value);
+        factor.value = val;
         factor.unit = data.unit;
         factor.source = data.source;
         factor.status = data.status;
@@ -505,11 +522,16 @@ function bindEmissionFactorsEvents(container) {
       `;
 
       openModal('Add New Emission Factor', fieldsHtml, (data) => {
+        const val = parseFloat(data.value);
+        if (isNaN(val) || val <= 0) {
+          showToast('Factor value must be a positive number.', 'warning');
+          return;
+        }
         const newFactor = {
           id: String(state.emissionFactors.length + 1),
           activity: data.activity,
           category: data.category,
-          value: parseFloat(data.value),
+          value: val,
           unit: data.unit,
           source: data.source,
           status: data.status
@@ -578,14 +600,29 @@ function bindProductESGProfilesEvents(container) {
       `;
 
       openModal('Add Product ESG Profile', fieldsHtml, (data) => {
+        const carbon = parseFloat(data.carbon);
+        const recyclability = parseInt(data.recyclability, 10);
+        const xp = parseInt(data.xp, 10);
+        if (isNaN(carbon) || carbon < 0) {
+          showToast('Carbon footprint must be a non-negative number.', 'warning');
+          return;
+        }
+        if (isNaN(recyclability) || recyclability < 0 || recyclability > 100) {
+          showToast('Recyclability score must be between 0 and 100.', 'warning');
+          return;
+        }
+        if (isNaN(xp) || xp < 0) {
+          showToast('XP value must be a non-negative number.', 'warning');
+          return;
+        }
         const newProfile = {
           id: String(state.productProfiles.length + 1),
           sku: data.sku,
           name: data.name,
           class: data.class,
-          carbon: parseFloat(data.carbon),
-          recyclability: parseInt(data.recyclability),
-          xp: parseInt(data.xp)
+          carbon,
+          recyclability,
+          xp
         };
         state.productProfiles.push(newProfile);
         showToast(`Product Profile for ${data.name} created. Score: ${getProductScore(newProfile.recyclability)}`, 'success');
@@ -621,10 +658,23 @@ function bindCarbonTransactionsEvents(container) {
       e.preventDefault();
       const dept = container.querySelector('#tx-dept-select').value;
       const factorId = factorSelect.value;
-      const qtyVal = parseFloat(container.querySelector('#tx-qty-input').value);
+      const qtyRaw = container.querySelector('#tx-qty-input').value;
+      const qtyVal = parseFloat(qtyRaw);
 
+      if (!dept) {
+        showToast('Please select a department.', 'warning');
+        return;
+      }
+      if (!factorId) {
+        showToast('Please select an emission factor.', 'warning');
+        return;
+      }
       if (isNaN(qtyVal) || qtyVal <= 0) {
-        showToast('Please enter a valid activity quantity.', 'warning');
+        showToast('Please enter a valid positive activity quantity.', 'warning');
+        return;
+      }
+      if (qtyVal > 1e12) {
+        showToast('Quantity value is too large.', 'warning');
         return;
       }
 
@@ -772,12 +822,26 @@ function bindGoalsEvents(container) {
       `;
 
       openModal('Create Sustainability Goal', fieldsHtml, (data) => {
+        const target = parseInt(data.target, 10);
+        const current = parseInt(data.current, 10);
+        if (isNaN(target) || target <= 0) {
+          showToast('Target must be a positive number.', 'warning');
+          return;
+        }
+        if (isNaN(current) || current < 0) {
+          showToast('Current progress must be a non-negative number.', 'warning');
+          return;
+        }
+        if (!data.deadline) {
+          showToast('Please select a target deadline date.', 'warning');
+          return;
+        }
         const newGoal = {
           id: String(state.environmentalGoals.length + 1),
           name: data.name,
           department: data.department,
-          target: parseInt(data.target),
-          current: parseInt(data.current),
+          target,
+          current,
           deadline: data.deadline,
           status: data.status
         };
@@ -833,10 +897,24 @@ function bindGoalsEvents(container) {
       `;
 
       openModal('Edit Sustainability Goal', fieldsHtml, (data) => {
+        const target = parseInt(data.target, 10);
+        const current = parseInt(data.current, 10);
+        if (isNaN(target) || target <= 0) {
+          showToast('Target must be a positive number.', 'warning');
+          return;
+        }
+        if (isNaN(current) || current < 0) {
+          showToast('Current progress must be a non-negative number.', 'warning');
+          return;
+        }
+        if (!data.deadline) {
+          showToast('Please select a target deadline date.', 'warning');
+          return;
+        }
         goal.name = data.name;
         goal.department = data.department;
-        goal.target = parseInt(data.target);
-        goal.current = parseInt(data.current);
+        goal.target = target;
+        goal.current = current;
         goal.deadline = data.deadline;
         goal.status = data.status;
         showToast('Goal changes saved.', 'success');

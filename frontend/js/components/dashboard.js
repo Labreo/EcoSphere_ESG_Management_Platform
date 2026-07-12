@@ -5,6 +5,10 @@
 export function renderDashboard(container) {
   container.innerHTML = `
     <div class="view-container">
+      <div class="breadcrumb">
+        <span class="breadcrumb-current">Dashboard</span>
+      </div>
+
       <!-- Title Header -->
       <div class="view-header">
         <h1 class="view-title">Dashboard: Executive Overview</h1>

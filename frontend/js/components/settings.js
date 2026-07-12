@@ -15,13 +15,23 @@ export function renderSettingsPage(container, pageKey) {
     contentHtml = renderNotificationSettings();
   }
 
+  const settingsPageTitles = { 'departments': 'Departments', 'categories': 'Categories', 'esg-configuration': 'ESG Configuration', 'notification-settings': 'Notifications' };
+
   container.innerHTML = `
     <div class="view-container">
+      <div class="breadcrumb">
+        <a href="#dashboard">Dashboard</a>
+        <span class="breadcrumb-sep">›</span>
+        <a href="#settings/departments">Settings</a>
+        <span class="breadcrumb-sep">›</span>
+        <span class="breadcrumb-current">${settingsPageTitles[pageKey] || 'Settings'}</span>
+      </div>
+
       <div class="sub-nav-tabs settings">
-        <a href="#settings/departments" class="sub-nav-tab ${pageKey === 'departments' ? 'active' : ''}">Departments</a>
-        <a href="#settings/categories" class="sub-nav-tab ${pageKey === 'categories' ? 'active' : ''}">Categories</a>
-        <a href="#settings/esg-configuration" class="sub-nav-tab ${pageKey === 'esg-configuration' ? 'active' : ''}">ESG Configuration</a>
-        <a href="#settings/notification-settings" class="sub-nav-tab ${pageKey === 'notification-settings' ? 'active' : ''}">Notifications</a>
+        <a href="#settings/departments" class="sub-nav-tab ${pageKey === 'departments' ? 'active' : ''}"><i data-lucide="building"></i> Departments</a>
+        <a href="#settings/categories" class="sub-nav-tab ${pageKey === 'categories' ? 'active' : ''}"><i data-lucide="tags"></i> Categories</a>
+        <a href="#settings/esg-configuration" class="sub-nav-tab ${pageKey === 'esg-configuration' ? 'active' : ''}"><i data-lucide="sliders"></i> ESG Configuration</a>
+        <a href="#settings/notification-settings" class="sub-nav-tab ${pageKey === 'notification-settings' ? 'active' : ''}"><i data-lucide="bell"></i> Notifications</a>
       </div>
       ${contentHtml}
     </div>

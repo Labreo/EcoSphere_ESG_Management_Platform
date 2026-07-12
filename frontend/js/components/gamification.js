@@ -2,6 +2,8 @@
  * EcoSphere Gamification Module View Component - Unified, Interactive & Top-Nav Layout
  */
 
+import { sanitize } from '../utils/validation.js';
+
 // Storage Keys
 const STORAGE_KEY = 'esg_gamification_state';
 const CATEGORIES_KEY = 'esg_categories';
@@ -207,6 +209,14 @@ export function renderGamificationPage(container, pageKey) {
   container.innerHTML = `
     <div class="view-container">
       
+      <div class="breadcrumb">
+        <a href="#dashboard">Dashboard</a>
+        <span class="breadcrumb-sep">›</span>
+        <a href="#gamification/challenges">Gamification</a>
+        <span class="breadcrumb-sep">›</span>
+        <span class="breadcrumb-current">${getGamificationTitle(pageKey)}</span>
+      </div>
+
       <!-- Gamification Header Row with Interactive Switcher -->
       <div class="gamification-header-row">
         <div class="view-header">
@@ -234,13 +244,13 @@ export function renderGamificationPage(container, pageKey) {
         </div>
       </div>
 
-      <!-- Sub Navigation connected tabs -->
+      <!-- Sub Navigation Tabs -->
       <div class="sub-nav-tabs gamification">
-        <a href="#gamification/challenges" class="sub-nav-tab ${pageKey === 'challenges' ? 'active' : ''}">Challenges</a>
-        <a href="#gamification/challenge-participation" class="sub-nav-tab ${pageKey === 'challenge-participation' ? 'active' : ''}">Challenge Participation</a>
-        <a href="#gamification/badges" class="sub-nav-tab ${pageKey === 'badges' ? 'active' : ''}">Badges</a>
-        <a href="#gamification/rewards" class="sub-nav-tab ${pageKey === 'rewards' ? 'active' : ''}">Rewards</a>
-        <a href="#gamification/leaderboard" class="sub-nav-tab ${pageKey === 'leaderboard' ? 'active' : ''}">Leaderboard</a>
+        <a href="#gamification/challenges" class="sub-nav-tab ${pageKey === 'challenges' ? 'active' : ''}"><i data-lucide="flag"></i> Challenges</a>
+        <a href="#gamification/challenge-participation" class="sub-nav-tab ${pageKey === 'challenge-participation' ? 'active' : ''}"><i data-lucide="list"></i> Challenge Participation</a>
+        <a href="#gamification/badges" class="sub-nav-tab ${pageKey === 'badges' ? 'active' : ''}"><i data-lucide="medal"></i> Badges</a>
+        <a href="#gamification/rewards" class="sub-nav-tab ${pageKey === 'rewards' ? 'active' : ''}"><i data-lucide="gift"></i> Rewards</a>
+        <a href="#gamification/leaderboard" class="sub-nav-tab ${pageKey === 'leaderboard' ? 'active' : ''}"><i data-lucide="trophy"></i> Leaderboard</a>
       </div>
 
       <!-- Sub-module Content viewport -->
@@ -928,11 +938,45 @@ function bindGamificationEvents(container, pageKey) {
       const title = container.querySelector('#c-title').value.trim();
       const category = container.querySelector('#c-category').value;
       const difficulty = container.querySelector('#c-difficulty').value;
-      const xp = parseInt(container.querySelector('#c-xp').value, 10);
+      const xpRaw = container.querySelector('#c-xp').value;
+      const xp = parseInt(xpRaw, 10);
       const deadline = container.querySelector('#c-deadline').value;
       const description = container.querySelector('#c-desc').value.trim();
       const evidenceRequired = container.querySelector('#c-evidence').checked;
       const status = container.querySelector('#c-status').value;
+
+      if (!title || title.length < 1 || title.length > 200) {
+        showToast('Challenge title must be between 1 and 200 characters.', 'warning');
+        return;
+      }
+      if (!description || description.length < 1 || description.length > 2000) {
+        showToast('Challenge description must be between 1 and 2000 characters.', 'warning');
+        return;
+      }
+      if (!xpRaw || isNaN(xp) || xp < 0 || xp > 10000) {
+        showToast('XP must be between 0 and 10000.', 'warning');
+        return;
+      }
+      if (!deadline) {
+        showToast('Please select a deadline.', 'warning');
+        return;
+      }
+      if (!category) {
+        showToast('Please select a category.', 'warning');
+        return;
+      }
+
+      const validDifficulties = ['Easy', 'Medium', 'Hard'];
+      if (!validDifficulties.includes(difficulty)) {
+        showToast('Difficulty must be Easy, Medium, or Hard.', 'warning');
+        return;
+      }
+
+      const validStatuses = ['Draft', 'Active', 'Under Review', 'Completed', 'Archived'];
+      if (!validStatuses.includes(status)) {
+        showToast('Invalid challenge status.', 'warning');
+        return;
+      }
 
       const newChallenge = {
         id: 'c_' + Date.now(),
@@ -1067,6 +1111,15 @@ function bindGamificationEvents(container, pageKey) {
       e.preventDefault();
       const challengeId = container.querySelector('#submit-challenge-id').value;
       const proofFile = container.querySelector('#evidence-file').value.trim();
+
+      if (!proofFile) {
+        showToast('Please provide evidence (URL or file reference).', 'warning');
+        return;
+      }
+      if (proofFile.length > 500) {
+        showToast('Evidence URL is too long (max 500 characters).', 'warning');
+        return;
+      }
 
       const part = state.participations.find(p => p.challengeId === challengeId && p.employee === state.currentUser);
       if (part) {

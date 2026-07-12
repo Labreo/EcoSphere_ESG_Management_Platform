@@ -2,6 +2,8 @@
  * EcoSphere Governance Module View Component - High Fidelity & Interactive
  */
 
+import { sanitize } from '../utils/validation.js';
+
 // Module-level in-memory state persisting across internal tab switching
 const state = {
   policies: [
@@ -80,22 +82,32 @@ export function renderGovernancePage(container, pageKey) {
     }
   });
 
+  const govPageTitles = { 'policies': 'Policies', 'policy-acknowledgements': 'Policy Acknowledgements', 'audits': 'Audits', 'compliance-issues': 'Compliance Issues' };
+
   container.innerHTML = `
-    <div class="view-container" style="padding-top: 0;">
+    <div class="view-container">
       
-      <!-- Sub Navigation connected tabs row -->
+      <div class="breadcrumb">
+        <a href="#dashboard">Dashboard</a>
+        <span class="breadcrumb-sep">›</span>
+        <a href="#governance/policies">Governance</a>
+        <span class="breadcrumb-sep">›</span>
+        <span class="breadcrumb-current">${govPageTitles[pageKey] || 'Governance'}</span>
+      </div>
+
+      <!-- Sub Navigation Tabs -->
       <div class="sub-nav-tabs gov">
         <a href="#governance/policies" class="sub-nav-tab ${pageKey === 'policies' ? 'active' : ''}">
-          Policies
+          <i data-lucide="file-text"></i> Policies
         </a>
         <a href="#governance/policy-acknowledgements" class="sub-nav-tab ${pageKey === 'policy-acknowledgements' ? 'active' : ''}">
-          Policy Acknowledgements
+          <i data-lucide="check-square"></i> Policy Acknowledgements
         </a>
         <a href="#governance/audits" class="sub-nav-tab ${pageKey === 'audits' ? 'active' : ''}">
-          Audits
+          <i data-lucide="search"></i> Audits
         </a>
         <a href="#governance/compliance-issues" class="sub-nav-tab ${pageKey === 'compliance-issues' ? 'active' : ''}">
-          Compliance Issues
+          <i data-lucide="alert-triangle"></i> Compliance Issues
         </a>
       </div>
 
@@ -814,13 +826,26 @@ function showAddPolicyModal(onSave) {
       </form>
     `,
     onSubmit: (data) => {
+      if (!data.title || data.title.trim().length < 1 || data.title.length > 200) {
+        showToast('Policy title must be between 1 and 200 characters.', 'warning');
+        return;
+      }
+      if (!data.description || data.description.trim().length < 1 || data.description.length > 5000) {
+        showToast('Policy description must be between 1 and 5000 characters.', 'warning');
+        return;
+      }
+      if (!data.version || data.version.trim().length < 1 || data.version.length > 20) {
+        showToast('Policy version must be between 1 and 20 characters.', 'warning');
+        return;
+      }
+
       const newPolicy = {
         id: `pol-${state.policies.length + 1}`,
-        title: data.title,
-        version: data.version,
+        title: data.title.trim(),
+        version: data.version.trim(),
         status: 'Active',
         scope: data.scope,
-        description: data.description,
+        description: data.description.trim(),
         publishedDate: SYSTEM_DATE,
         acknowledgedCount: 0,
         totalRequired: data.scope === 'Global' ? 156 : (data.scope === 'Manufacturing' ? 42 : 83)
@@ -828,7 +853,6 @@ function showAddPolicyModal(onSave) {
 
       state.policies.push(newPolicy);
 
-      // Create a few pending acknowledgements for simulation
       state.acknowledgements.push(
         { id: `ack-sim-${Date.now()}-1`, employeeName: 'Mark Robinson', policyTitle: `${data.title} v${data.version}`, signedDate: 'Unsigned', complianceState: 'Pending' },
         { id: `ack-sim-${Date.now()}-2`, employeeName: 'Alice Vance', policyTitle: `${data.title} v${data.version}`, signedDate: 'Unsigned', complianceState: 'Pending' }
@@ -883,14 +907,18 @@ function showSignPolicyModal(policy, onSave) {
       }
     },
     onSubmit: (data) => {
-      // Update acknowledgement state
+      if (!data.sigName || data.sigName.trim().length < 1 || data.sigName.length > 100) {
+        showToast('Please enter your full name to sign.', 'warning');
+        return;
+      }
+
       const pTitleWithVer = `${policy.title} v${policy.version}`;
       let ack = state.acknowledgements.find(a => a.employeeName === data.sigName && a.policyTitle === pTitleWithVer);
       
       if (!ack) {
         ack = {
           id: `ack-${Date.now()}`,
-          employeeName: data.sigName,
+          employeeName: data.sigName.trim(),
           policyTitle: pTitleWithVer,
           signedDate: `${SYSTEM_DATE} 10:26`,
           complianceState: 'Compliant'
@@ -901,7 +929,6 @@ function showSignPolicyModal(policy, onSave) {
         ack.complianceState = 'Compliant';
       }
 
-      // Increment policy counter
       policy.acknowledgedCount = Math.min(policy.totalRequired, policy.acknowledgedCount + 1);
 
       showToast(`Acknowledged "${policy.title}" successfully. Signature logged.`, 'success');
@@ -971,12 +998,29 @@ function showAddAuditModal(onSave) {
       </form>
     `,
     onSubmit: (data) => {
+      if (!data.title || data.title.trim().length < 1 || data.title.length > 200) {
+        showToast('Audit title must be between 1 and 200 characters.', 'warning');
+        return;
+      }
+      if (!data.auditor || data.auditor.trim().length < 1 || data.auditor.length > 100) {
+        showToast('Auditor name must be between 1 and 100 characters.', 'warning');
+        return;
+      }
+      if (!data.date) {
+        showToast('Please select an audit date.', 'warning');
+        return;
+      }
+      if (data.findings && data.findings.length > 2000) {
+        showToast('Findings must be under 2000 characters.', 'warning');
+        return;
+      }
+
       const auditId = `aud-${state.audits.length + 1}`;
       const newAudit = {
         id: auditId,
-        title: data.title,
+        title: data.title.trim(),
         department: data.department,
-        auditor: data.auditor,
+        auditor: data.auditor.trim(),
         date: data.date,
         findings: data.findings,
         status: data.status
@@ -984,8 +1028,7 @@ function showAddAuditModal(onSave) {
 
       state.audits.push(newAudit);
 
-      // Auto-trigger a compliance issue if findings mention issues
-      const containsIssues = data.findings.toLowerCase().includes('issue') || data.findings.toLowerCase().includes('violation');
+      const containsIssues = (data.findings || '').toLowerCase().includes('issue') || (data.findings || '').toLowerCase().includes('violation');
       if (containsIssues) {
         const issueId = `CMP-0${30 + state.complianceIssues.length}`;
         state.complianceIssues.push({
@@ -1059,29 +1102,41 @@ function showAddIssueModal(onSave) {
       </form>
     `,
     onSubmit: (data) => {
+      if (!data.issue || data.issue.trim().length < 1 || data.issue.length > 500) {
+        showToast('Issue description must be between 1 and 500 characters.', 'warning');
+        return;
+      }
+      if (!data.owner || data.owner.trim().length < 1 || data.owner.length > 100) {
+        showToast('Owner name must be between 1 and 100 characters.', 'warning');
+        return;
+      }
+      if (!data.dueDate) {
+        showToast('Please select a due date.', 'warning');
+        return;
+      }
+
       const issueId = `CMP-0${30 + state.complianceIssues.length}`;
       
       const newIssue = {
         id: issueId,
-        issue: data.issue,
+        issue: data.issue.trim(),
         severity: data.severity,
         department: data.department,
         status: data.dueDate < SYSTEM_DATE ? 'Overdue' : 'Open',
-        owner: data.owner,
+        owner: data.owner.trim(),
         dueDate: data.dueDate,
         auditRef: 'none'
       };
 
       state.complianceIssues.push(newIssue);
 
-      // Fire notifications for new compliance issue
       const esgSettings = JSON.parse(localStorage.getItem('esg_settings') || '{}');
       const notifSettings = esgSettings.notifications || {};
       if (notifSettings.newComplianceIssue_inapp !== false) {
-        showToast(`🔴 New Compliance Issue Raised: ${issueId} — ${data.issue} (${data.severity})`, 'warning');
+        showToast(`New Compliance Issue Raised: ${issueId} — ${data.issue} (${data.severity})`, 'warning');
       }
       if (notifSettings.newComplianceIssue_email) {
-        console.log(`✉️ Email alert sent: New compliance issue ${issueId} raised. Severity: ${data.severity}. Owner: ${data.owner}`);
+        console.log(`Email alert sent: New compliance issue ${issueId} raised. Severity: ${data.severity}. Owner: ${data.owner}`);
       }
 
       onSave();
@@ -1118,7 +1173,16 @@ function showEditOwnerModal(issue, onSave) {
       </form>
     `,
     onSubmit: (data) => {
-      issue.owner = data.owner;
+      if (!data.owner || data.owner.trim().length < 1 || data.owner.length > 100) {
+        showToast('Owner name must be between 1 and 100 characters.', 'warning');
+        return;
+      }
+      if (!data.dueDate) {
+        showToast('Please select a due date.', 'warning');
+        return;
+      }
+
+      issue.owner = data.owner.trim();
       issue.dueDate = data.dueDate;
       
       if (issue.status !== 'Resolved') {

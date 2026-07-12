@@ -2,6 +2,8 @@
  * EcoSphere Social Module View Component - Unified, Interactive & Top-Nav Layout
  */
 
+import { sanitize } from '../utils/validation.js';
+
 // Module-level in-memory state, persisting across internal tab switching
 const state = {
   activities: [
@@ -37,22 +39,32 @@ export function renderSocialPage(container, pageKey) {
   // Set default sub-route if needed
   if (!pageKey) pageKey = 'csr-activities';
 
+  const socialPageTitles = { 'csr-activities': 'CSR Activities', 'employee-participation': 'Employee Participation', 'diversity-dashboard': 'Diversity Dashboard', 'training-completion': 'Training Completion' };
+
   container.innerHTML = `
-    <div class="view-container" style="padding-top: 0;">
+    <div class="view-container">
       
-      <!-- Sub Navigation Connected Rectangular Tabs Row -->
+      <div class="breadcrumb">
+        <a href="#dashboard">Dashboard</a>
+        <span class="breadcrumb-sep">›</span>
+        <a href="#social/csr-activities">Social</a>
+        <span class="breadcrumb-sep">›</span>
+        <span class="breadcrumb-current">${socialPageTitles[pageKey] || 'Social'}</span>
+      </div>
+
+      <!-- Sub Navigation Tabs -->
       <div class="sub-nav-tabs social">
         <a href="#social/csr-activities" class="sub-nav-tab ${pageKey === 'csr-activities' ? 'active' : ''}">
-          CSR Activities
+          <i data-lucide="heart"></i> CSR Activities
         </a>
         <a href="#social/employee-participation" class="sub-nav-tab ${pageKey === 'employee-participation' ? 'active' : ''}">
-          Employee Participation
+          <i data-lucide="user-check"></i> Employee Participation
         </a>
         <a href="#social/diversity-dashboard" class="sub-nav-tab ${pageKey === 'diversity-dashboard' ? 'active' : ''}">
-          Diversity Dashboard
+          <i data-lucide="equal"></i> Diversity Dashboard
         </a>
         <a href="#social/training-completion" class="sub-nav-tab ${pageKey === 'training-completion' ? 'active' : ''}">
-          Training Completion
+          <i data-lucide="book-open"></i> Training Completion
         </a>
       </div>
 
@@ -759,13 +771,32 @@ function showNewActivityModal(container) {
   backdrop.querySelector('#social-modal-form').addEventListener('submit', (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
+    const title = formData.get('title');
+    const xpRaw = formData.get('xp');
+    const xpVal = parseInt(xpRaw, 10);
+    const joinedRaw = formData.get('joinedCount');
+    const joinedVal = parseInt(joinedRaw, 10);
+
+    if (!title || title.trim().length < 1 || title.length > 200) {
+      showToast('Activity title must be between 1 and 200 characters.', 'warning');
+      return;
+    }
+    if (isNaN(xpVal) || xpVal < 0 || xpVal > 10000) {
+      showToast('XP reward must be between 0 and 10000.', 'warning');
+      return;
+    }
+    if (isNaN(joinedVal) || joinedVal < 0 || joinedVal > 10000) {
+      showToast('Joined count must be between 0 and 10000.', 'warning');
+      return;
+    }
+
     const newAct = {
       id: 'act_' + Date.now(),
       emoji: formData.get('emoji') || '🌟',
-      title: formData.get('title'),
-      xp: parseInt(formData.get('xp'), 10) || 50,
+      title: title.trim(),
+      xp: xpVal,
       requirement: formData.get('requirement'),
-      joinedCount: parseInt(formData.get('joinedCount'), 10) || 0,
+      joinedCount: joinedVal,
       joined: false
     };
 
@@ -839,9 +870,18 @@ function showSubmitProofModal(container, activity) {
     const employee = formData.get('employee');
     const proof = formData.get('proof');
 
+    if (!employee || employee.trim().length < 1 || employee.length > 100) {
+      showToast('Employee name must be between 1 and 100 characters.', 'warning');
+      return;
+    }
+    if (proof && proof.length > 500) {
+      showToast('Proof file URL is too long (max 500 characters).', 'warning');
+      return;
+    }
+
     state.approvalQueue.push({
       id: 'q_' + Date.now(),
-      employee,
+      employee: employee.trim(),
       activity: activity.title,
       proof,
       points: activity.xp,

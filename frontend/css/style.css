@@ -151,6 +151,7 @@ html, body {
 .nav-link-horizontal {
   display: inline-flex;
   align-items: center;
+  gap: 8px;
   padding: 0 20px;
   height: 100%;
   color: var(--text-secondary);
@@ -161,6 +162,12 @@ html, body {
   transition: all var(--transition-fast);
   border-bottom: 4px solid transparent;
   cursor: pointer;
+}
+
+.nav-link-horizontal i {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
 }
 
 .nav-link-horizontal:hover {
@@ -261,14 +268,16 @@ html, body {
 
 .sub-nav-tabs {
   display: flex;
-  gap: 0;
-  margin-top: 10px;
-  margin-bottom: 24px;
-  border-bottom: 1px solid var(--border-color);
+  gap: 6px;
+  margin-bottom: 28px;
+  padding: 4px;
   width: 100%;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-lg);
 }
 
 .sub-nav-tabs::-webkit-scrollbar {
@@ -278,44 +287,83 @@ html, body {
 .sub-nav-tab {
   display: inline-flex;
   align-items: center;
-  justify-content: center;
-  padding: 12px 24px;
-  background: var(--bg-card);
+  gap: 8px;
+  padding: 10px 20px;
   color: var(--text-secondary);
   font-family: var(--font-heading);
   font-weight: 600;
   font-size: 13.5px;
   text-decoration: none;
   cursor: pointer;
-  border: 1px solid var(--border-color);
-  margin-right: -1px;
-  border-radius: 0;
+  border-radius: var(--radius-md);
   transition: all var(--transition-fast);
   white-space: nowrap;
   flex-shrink: 0;
+  border: none;
 }
 
 .sub-nav-tab:hover {
-  background: rgba(255, 255, 255, 0.03);
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.sub-nav-tab i {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+}
+
+/* Module-specific accent colors via CSS variables */
+.sub-nav-tabs.env { --tab-accent: var(--accent-success); --tab-shadow: 0 2px 8px rgba(16, 185, 129, 0.3); }
+.sub-nav-tabs.social { --tab-accent: var(--accent-info); --tab-shadow: 0 2px 8px rgba(59, 130, 246, 0.3); }
+.sub-nav-tabs.gov { --tab-accent: var(--accent-warning); --tab-shadow: 0 2px 8px rgba(139, 92, 246, 0.3); }
+.sub-nav-tabs.gamification { --tab-accent: var(--accent-gamification); --tab-shadow: 0 2px 8px rgba(245, 158, 11, 0.3); }
+.sub-nav-tabs.reports { --tab-accent: var(--accent-primary); --tab-shadow: 0 2px 8px rgba(59, 130, 246, 0.3); }
+.sub-nav-tabs.settings { --tab-accent: var(--text-muted); --tab-shadow: 0 2px 8px rgba(107, 114, 128, 0.3); }
+
+.sub-nav-tab.active {
+  background-color: var(--tab-accent, var(--accent-success));
+  color: #080B11;
+  box-shadow: var(--tab-shadow, 0 2px 8px rgba(16, 185, 129, 0.3));
+}
+
+/* ==========================================================================
+   Breadcrumb Navigation
+   ========================================================================== */
+
+.breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+  font-size: 13px;
+  color: var(--text-muted);
+  flex-wrap: wrap;
+}
+
+.breadcrumb a {
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: color var(--transition-fast);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.breadcrumb a:hover {
   color: var(--text-primary);
 }
 
-.sub-nav-tab.active {
-  background-color: var(--accent-success) !important;
-  color: #080B11 !important;
-  border-color: var(--accent-success) !important;
-  border-radius: var(--radius-md) !important;
-  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
-  z-index: 2;
+.breadcrumb-sep {
+  color: var(--text-muted);
+  font-size: 14px;
+  user-select: none;
 }
 
-/* Module-specific active tab colors */
-.sub-nav-tabs.env .sub-nav-tab.active { background-color: var(--accent-success) !important; border-color: var(--accent-success) !important; }
-.sub-nav-tabs.social .sub-nav-tab.active { background-color: var(--accent-info) !important; border-color: var(--accent-info) !important; }
-.sub-nav-tabs.gov .sub-nav-tab.active { background-color: var(--accent-warning) !important; border-color: var(--accent-warning) !important; box-shadow: 0 4px 12px rgba(139, 92, 246, 0.3); }
-.sub-nav-tabs.gamification .sub-nav-tab.active { background-color: var(--accent-gamification) !important; border-color: var(--accent-gamification) !important; box-shadow: 0 4px 12px rgba(245, 158, 11, 0.3); }
-.sub-nav-tabs.reports .sub-nav-tab.active { background-color: var(--accent-primary) !important; border-color: var(--accent-primary) !important; box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3); }
-.sub-nav-tabs.settings .sub-nav-tab.active { background-color: var(--text-muted) !important; border-color: var(--text-muted) !important; color: #080B11 !important; box-shadow: 0 4px 12px rgba(107, 114, 128, 0.3); }
+.breadcrumb-current {
+  color: var(--text-primary);
+  font-weight: 600;
+}
 
 /* ==========================================================================
    Common/General Component Styling
@@ -798,8 +846,12 @@ html, body {
     font-size: 24px;
   }
 
+  .sub-nav-tabs {
+    padding: 2px;
+  }
+
   .sub-nav-tab {
-    padding: 10px 16px;
+    padding: 8px 14px;
     font-size: 12.5px;
   }
 }
